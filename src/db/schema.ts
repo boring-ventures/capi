@@ -4,9 +4,7 @@ import {
   varchar,
   text,
   decimal,
-  timestamp,
-  primaryKey,
-  foreignKey,
+  timestamp
 } from "drizzle-orm/pg-core";
 
 // Tabla de Usuarios
