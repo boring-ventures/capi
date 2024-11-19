@@ -1,5 +1,5 @@
-import { BlockPage } from "@/components/app-page";
+import { LoginPage } from "@/components/login-page";
 
 export default function Home() {
-  return <BlockPage />;
+  return <LoginPage />;
 }
