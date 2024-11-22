@@ -42,8 +42,8 @@ export function LoginPage() {
       } else {
         const { session, user } = data;
         if (session) {
-          sessionStorage.setItem("user_data", JSON.stringify(user));
-          sessionStorage.setItem("access_token", session.access_token);
+          localStorage.setItem("user_data", JSON.stringify(user));
+          localStorage.setItem("access_token", session.access_token);
         }
         setMessage("¡Inicio de sesión exitoso!");
         router.push("/dashboard");
