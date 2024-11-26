@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),
   role: varchar("role", { length: 50 }).notNull(), // ENUM (Admin, Supervisor, Customer, Technician)
+  status: varchar("status", { length: 50 }).notNull(), // ENUM (Active, Inactive)
 });
 
 // Tabla de Ubicaciones
