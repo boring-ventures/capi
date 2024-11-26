@@ -92,7 +92,7 @@ export function KpiDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-3 space-y-3 max-w-7xl mx-auto">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Análisis y Reportes de KPIs</h1>
         <div className="relative w-72">
