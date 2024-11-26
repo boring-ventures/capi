@@ -2,7 +2,8 @@
 
 import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabaseClient";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -16,20 +17,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         router.push("/");
         return;
       }
-
-      // const {
-      //   data: { user },
-      // } = await supabase.auth.getUser();
-
-      // if (!user) {
-      //   localStorage.removeItem("user_data");
-      //   localStorage.removeItem("access_token");
-      //   router.push("/");
-      // }
     };
 
     checkUser();
   }, [router]);
 
-  return <div>{children}</div>;
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className="bg-slate-50">
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
 }
