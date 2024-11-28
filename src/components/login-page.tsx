@@ -13,9 +13,9 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/utils/supabaseClient";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -32,7 +32,7 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -40,6 +40,11 @@ export function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
+        const { session, user } = data;
+        if (session) {
+          localStorage.setItem("user_data", JSON.stringify(user));
+          localStorage.setItem("access_token", session.access_token);
+        }
         setMessage("¡Inicio de sesión exitoso!");
         router.push("/dashboard");
       }
@@ -58,15 +63,17 @@ export function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        setMessage("Correo de restablecimiento de contraseña enviado. Por favor revisa tu bandeja de entrada.");
+        setMessage(
+          "Correo de restablecimiento de contraseña enviado. Por favor revisa tu bandeja de entrada."
+        );
       }
     } finally {
       setIsResettingPassword(false);
     }
   };
-  
+
   const isFormValid = email.trim() !== "" && password.trim() !== "";
-  
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md">
@@ -113,8 +120,8 @@ export function LoginPage() {
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={!isFormValid || isLoading}
             >
