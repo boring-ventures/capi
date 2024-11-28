@@ -15,12 +15,12 @@ import {
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Users2, label: 'Usuarios y Trabajadores', href: '/users' },
-  { icon: Briefcase, label: 'Servicios', href: '/services' },
-  { icon: History, label: 'Historial de Servicios', href: '/history' },
-  { icon: PiggyBank, label: 'Gestión Financiera', href: '/finance' },
-  { icon: HelpCircle, label: 'Soporte y Alertas', href: '/support' },
-  { icon: Bell, label: 'Notificaciones', href: '/notifications' },
+  { icon: Users2, label: 'Usuarios', href: '/dashboard/users' },
+  { icon: Briefcase, label: 'Servicios', href: '/dashboard/services' },
+  { icon: History, label: 'Historial de Servicios', href: '/dashboard/history' },
+  { icon: PiggyBank, label: 'Gestión Financiera', href: '/dashboard/finance' },
+  { icon: HelpCircle, label: 'Soporte y Alertas', href: '/dashboard/support' },
+  { icon: Bell, label: 'Notificaciones', href: '/dashboard/notifications' },
 ]
 
 export function AppSidebar() {
