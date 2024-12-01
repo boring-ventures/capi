@@ -6,7 +6,7 @@ interface UserStatusProps {
 
 export function UserStatus({ status }: UserStatusProps) {
   return (
-    <Badge variant={status === 'activo' ? 'success' : 'secondary'}>
+    <Badge variant={status === 'activo' ? 'default' : 'secondary'}>
       {status === 'activo' ? 'Activo' : 'Inactivo'}
     </Badge>
   )
