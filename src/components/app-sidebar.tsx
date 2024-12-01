@@ -25,12 +25,9 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
 
   const handleLogout = () => {
-    // Implementa aquí la lógica de cierre de sesión
     console.log('Cerrando sesión...')
-    // Por ejemplo: router.push('/login')
   }
 
   return (
