@@ -4,7 +4,8 @@ import {
   varchar,
   text,
   decimal,
-  timestamp
+  timestamp,
+  jsonb
 } from "drizzle-orm/pg-core";
 
 // Tabla de Usuarios
@@ -13,8 +14,8 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),
-  role: varchar("role", { length: 50 }).notNull(), // ENUM (Admin, Supervisor, Customer, Technician)
-  status: varchar("status", { length: 50 }).notNull(), // ENUM (Active, Inactive)
+  role: varchar("role", { length: 255 }).notNull(),
+  status: varchar("status", { length: 255 }).notNull(),
 });
 
 // Tabla de Ubicaciones
@@ -121,4 +122,33 @@ export const userServices = pgTable("user_services", {
   service_id: uuid("service_id")
     .notNull()
     .references(() => services.id),
+});
+
+// Tabla de Documentos de Técnicos
+export const technicianDocuments = pgTable("technician_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  carnet_identidad_anverso: varchar("carnet_identidad_anverso", { length: 255 }),
+  carnet_identidad_reverso: varchar("carnet_identidad_reverso", { length: 255 }),
+  factura_luz: varchar("factura_luz", { length: 255 }),
+  certificaciones: jsonb("certificaciones").notNull().default([]),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabla de Información Laboral de Técnicos
+export const technicianWorkInfo = pgTable("technician_work_info", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  area_trabajo: varchar("area_trabajo", { length: 255 }).notNull(),
+  anos_experiencia: varchar("anos_experiencia", { length: 255 }).notNull(),
+  nombre_banco: varchar("nombre_banco", { length: 255 }).notNull(),
+  numero_cuenta: varchar("numero_cuenta", { length: 255 }).notNull(),
+  tipo_cuenta: varchar("tipo_cuenta", { length: 255 }).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
