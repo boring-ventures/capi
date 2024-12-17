@@ -1,11 +1,45 @@
 import { supabase } from "@/utils/supabaseClient";
 
-// Create a new user
-export const createUser = async (userData: any) => {
-  const { data, error } = await supabase.from("users").insert(userData);
+interface CreateUserResponse {
+  data: any[] | null;
+  error: any | null;
+  status: number;
+  statusText: string;
+}
 
-  if (error) throw new Error(`Error creating user: ${error.message}`);
-  return data;
+// Create a new user
+export const createUser = async (userData: any): Promise<CreateUserResponse> => {
+  try {
+    console.log('userData: ', userData);
+    const { data, error } = await supabase
+      .from("users")
+      .insert(userData)
+      .select()
+      .single();
+
+    if (error) {
+      return {
+        data: null,
+        error: error.message,
+        status: Number(error.code) || 400,
+        statusText: "Error al crear el usuario"
+      };
+    }
+
+    return {
+      data: [data],
+      error: null,
+      status: 201,
+      statusText: "El usuario se creó con éxito"
+    };
+  } catch (error: any) {
+    return {
+      data: null,
+      error: error.message,
+      status: 500,
+      statusText: "Error interno del servidor"
+    };
+  }
 };
 
 // Get all users

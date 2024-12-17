@@ -33,8 +33,8 @@ export const createTechnician = async (technicianData: TechnicianData) => {
     };
 
     const user = await createUser(userData);
-    if (!user) throw new Error("Failed to create user");
-    const userId = (user as any[])[0].id;
+    if (!user.data || user.error) throw new Error(user.error || "Failed to create user");
+    const userId = user.data[0].id;
 
     // 2. Crear el registro de documentos
     const { data: docsData, error: docsError } = await supabase
