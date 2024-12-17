@@ -1,13 +1,13 @@
 import { Badge } from "@/components/ui/badge"
 
 interface UserStatusProps {
-  status: 'activo' | 'inactivo'
+  status: 'active' | 'inactive'
 }
 
 export function UserStatus({ status }: UserStatusProps) {
   return (
-    <Badge variant={status === 'activo' ? 'default' : 'secondary'}>
-      {status === 'activo' ? 'Activo' : 'Inactivo'}
+    <Badge variant={status === 'active' ? 'default' : 'secondary'}>
+      {status === 'active' ? 'Activo' : 'Inactivo'}
     </Badge>
   )
 }

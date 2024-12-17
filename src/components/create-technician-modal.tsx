@@ -15,6 +15,7 @@ import { WorkInfoForm } from "./work-info-form";
 import { uploadFile } from "@/utils/storage-utils";
 import { createTechnician } from "@/lib/technicians/actions";
 import { updateTechnicianDocuments } from "@/lib/technicians/actions";
+import { useCreateTechnician } from "@/hooks/useTechnicians";
 
 interface CreateTechnicianModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function CreateTechnicianModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isValid, setIsValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const createTechnicianMutation = useCreateTechnician();
 
   const validatePersonalInfo = useCallback(() => {
     const newErrors: Record<string, string> = {};
@@ -166,8 +168,13 @@ export function CreateTechnicianModal({
           tipoCuenta: formData.tipoCuenta,
         };
 
-        // Create user and get ID
-        const { userId } = await createTechnician(technicianData);
+        const response = await createTechnicianMutation.mutateAsync(technicianData);
+        
+        if (response.error || !response.data) {
+          throw new Error(response.error || "Error desconocido");
+        }
+
+        const userId = response.data.userId;
 
         // Upload all documents with the user ID
         const uploadPromises = [];
@@ -215,7 +222,6 @@ export function CreateTechnicianModal({
           certificaciones: uploadedUrls.certificacionesUrls as string[],
         });
 
-        console.log("Técnico registrado exitosamente");
         onOpenChange(false);
       } catch (error) {
         console.error("Error al registrar técnico:", error);

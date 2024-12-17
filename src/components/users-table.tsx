@@ -134,7 +134,7 @@ export function UsersTable() {
                 <TableCell>
                   <UserAvatar
                     name={user.name}
-                    role={user.role as "cliente" | "trabajador"}
+                    role={user.role as "cliente" | "tecnico"}
                   />
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -145,7 +145,7 @@ export function UsersTable() {
                 <TableCell>
                   <UserStatus
                     status={
-                      user.status.toLowerCase() as "activo" | "inactivo"
+                      user.status.toLowerCase() as "active" | "inactive"
                     }
                   />
                 </TableCell>

@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 interface UserAvatarProps {
   name: string
-  role: 'cliente' | 'trabajador'
+  role: 'cliente' | 'tecnico'
 }
 
 export function UserAvatar({ name, role }: UserAvatarProps) {
