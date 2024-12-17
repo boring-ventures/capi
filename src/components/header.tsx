@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
-import { CreateUserModal } from "./create-user-modal"
+import { CreateTechnicianModal } from "./create-technician-modal"
 import UserTypeDialog from "./user-type-dialog"
 
 export function UserManagementHeader() {
@@ -31,7 +31,7 @@ export function UserManagementHeader() {
         onSelect={handleUserTypeSelected}
       />
 
-      <CreateUserModal 
+      <CreateTechnicianModal 
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
       />
