@@ -1,6 +1,13 @@
 import { supabase } from "@/utils/supabaseClient";
 import { createUser } from "../users/actions";
 
+interface TechnicianResponse {
+  data: any | null;
+  error: any | null;
+  status: number;
+  statusText: string;
+}
+
 interface TechnicianData {
   // Personal Info
   nombre: string;
@@ -21,19 +28,27 @@ interface TechnicianData {
   certificacionesUrls?: string[];
 }
 
-export const createTechnician = async (technicianData: TechnicianData) => {
+export const createTechnician = async (technicianData: TechnicianData): Promise<TechnicianResponse> => {
   try {
     // 1. Crear el usuario base primero
     const userData = {
       name: `${technicianData.nombre} ${technicianData.apellido}`,
       email: technicianData.correoElectronico,
       phone: technicianData.telefono,
-      role: "Technician",
-      status: "Active",
+      role: "tecnico",
+      status: "active",
     };
 
     const user = await createUser(userData);
-    if (!user.data || user.error) throw new Error(user.error || "Failed to create user");
+    if (!user.data || user.error) {
+      return {
+        data: null,
+        error: user.error || "Failed to create user",
+        status: 400,
+        statusText: "Error al crear el usuario base"
+      };
+    }
+
     const userId = user.data[0].id;
 
     // 2. Crear el registro de documentos
@@ -45,9 +60,18 @@ export const createTechnician = async (technicianData: TechnicianData) => {
         carnet_identidad_reverso: technicianData.carnetIdentidadReversoUrl,
         factura_luz: technicianData.facturaLuzUrl,
         certificaciones: technicianData.certificacionesUrls,
-      });
+      })
+      .select()
+      .single();
 
-    if (docsError) throw docsError;
+    if (docsError) {
+      return {
+        data: null,
+        error: docsError.message,
+        status: 400,
+        statusText: "Error al crear los documentos del técnico"
+      };
+    }
 
     // 3. Crear el registro de información laboral
     const { data: workData, error: workError } = await supabase
@@ -59,14 +83,37 @@ export const createTechnician = async (technicianData: TechnicianData) => {
         nombre_banco: technicianData.nombreBanco,
         numero_cuenta: technicianData.numeroCuenta,
         tipo_cuenta: technicianData.tipoCuenta,
-      });
+      })
+      .select()
+      .single();
 
-    if (workError) throw workError;
+    if (workError) {
+      return {
+        data: null,
+        error: workError.message,
+        status: 400,
+        statusText: "Error al crear la información laboral del técnico"
+      };
+    }
 
-    return { userId, docsData, workData };
-  } catch (error) {
-    console.error("Error creating technician:", error);
-    throw error;
+    return {
+      data: {
+        userId,
+        user: user.data[0],
+        documents: docsData,
+        workInfo: workData
+      },
+      error: null,
+      status: 201,
+      statusText: "Técnico registrado exitosamente"
+    };
+  } catch (error: any) {
+    return {
+      data: null,
+      error: error.message,
+      status: 500,
+      statusText: "Error interno del servidor"
+    };
   }
 };
 
