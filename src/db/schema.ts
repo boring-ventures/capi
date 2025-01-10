@@ -149,6 +149,19 @@ export const technicianWorkInfo = pgTable("technician_work_info", {
   nombre_banco: varchar("nombre_banco", { length: 255 }).notNull(),
   numero_cuenta: varchar("numero_cuenta", { length: 255 }).notNull(),
   tipo_cuenta: varchar("tipo_cuenta", { length: 255 }).notNull(),
+  category_id: uuid("category_id")
+    .notNull()
+    .references(() => categories.id),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Nueva tabla de Subcategorías
+export const subcategories = pgTable("subcategories", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  minimum_price: decimal("minimum_price", { precision: 10, scale: 2 }).notNull(),
+  category_id: uuid("category_id")
+    .notNull()
+    .references(() => categories.id),
 });
