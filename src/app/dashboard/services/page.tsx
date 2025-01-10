@@ -64,7 +64,7 @@ export default function ServicesPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isInterventionModalOpen, setIsInterventionModalOpen] = useState(false);
 
-  const handleAddCategory = (name: string, minimumPrice: number) => {
+  const handleAddCategory = (name: string) => {
     const newCategory = {
       id: Math.random().toString(),
       name,

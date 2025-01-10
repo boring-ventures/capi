@@ -1,31 +1,37 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Category } from "@/types/category"
-import { CategoryItem } from "./category-item"
-import { AddCategoryDialog } from "./add-category-dialog"
-import { AddSubcategoryDialog } from "./add-subcategory-dialog"
+import { useState } from "react";
+import { Category } from "@/types/category";
+import { CategoryItem } from "./category-item";
+import { AddCategoryDialog } from "./add-category-dialog";
+import { AddSubcategoryDialog } from "./add-subcategory-dialog";
 
 interface CategoriesProps {
-  initialCategories: Category[]
+  initialCategories: Category[];
 }
 
 export function Categories({ initialCategories }: CategoriesProps) {
-  const [categories, setCategories] = useState<Category[]>(initialCategories)
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
-  const [isAddingCategory, setIsAddingCategory] = useState(false)
-  const [isAddingSubcategory, setIsAddingSubcategory] = useState(false)
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingSubcategory, setIsAddingSubcategory] = useState(false);
 
-  const handleAddCategory = (name: string, minimumPrice: number) => {
+  const handleAddCategory = (name: string) => {
     const newCategory: Category = {
       id: Math.random().toString(),
       name,
       subcategories: [],
-    }
-    setCategories([...categories, newCategory])
-  }
+    };
+    setCategories([...categories, newCategory]);
+  };
 
-  const handleAddSubcategory = (categoryId: string, name: string, minimumPrice: number) => {
+  const handleAddSubcategory = (
+    categoryId: string,
+    name: string,
+    minimumPrice: number
+  ) => {
     setCategories(
       categories.map((category) => {
         if (category.id === categoryId) {
@@ -40,12 +46,12 @@ export function Categories({ initialCategories }: CategoriesProps) {
                 activeServices: 0,
               },
             ],
-          }
+          };
         }
-        return category
+        return category;
       })
-    )
-  }
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -54,8 +60,8 @@ export function Categories({ initialCategories }: CategoriesProps) {
           key={category.id}
           category={category}
           onAddSubcategory={() => {
-            setSelectedCategory(category)
-            setIsAddingSubcategory(true)
+            setSelectedCategory(category);
+            setIsAddingSubcategory(true);
           }}
         />
       ))}
@@ -71,11 +77,10 @@ export function Categories({ initialCategories }: CategoriesProps) {
         onOpenChange={setIsAddingSubcategory}
         onAdd={(name, minimumPrice) => {
           if (selectedCategory) {
-            handleAddSubcategory(selectedCategory.id, name, minimumPrice)
+            handleAddSubcategory(selectedCategory.id, name, minimumPrice);
           }
         }}
       />
     </div>
-  )
+  );
 }
-
