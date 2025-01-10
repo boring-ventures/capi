@@ -11,32 +11,7 @@ import { ServiceCard } from "@/components/service-card";
 import { DisputesPanel } from "@/components/disputes-panel";
 import { ServiceDetailsModal } from "@/components/service-details-modal";
 import { InterventionModal } from "@/components/intervention-modal";
-
-const initialCategories = [
-  {
-    id: "1",
-    name: "Electricidad",
-    subcategories: [
-      {
-        id: "1-1",
-        name: "Instalaciones",
-        minimumPrice: 50,
-        activeServices: 12,
-      },
-      {
-        id: "1-2",
-        name: "Reparaciones",
-        minimumPrice: 30,
-        activeServices: 8,
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Plomería",
-    subcategories: [],
-  },
-];
+import { useToast } from "@/hooks/use-toast";
 
 const mockServices = [
   {
@@ -58,20 +33,12 @@ const mockServices = [
 ];
 
 export default function ServicesPage() {
-  const [categories, setCategories] = useState(initialCategories);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isInterventionModalOpen, setIsInterventionModalOpen] = useState(false);
-
-  const handleAddCategory = (name: string) => {
-    const newCategory = {
-      id: Math.random().toString(),
-      name,
-      subcategories: [],
-    };
-    setCategories([...categories, newCategory]);
-  };
+  const [refreshKey, setRefreshKey] = useState(0);
+  const { toast } = useToast();
 
   const handleFilterChange = (status: string) => {
     console.log("Filter changed:", status);
@@ -133,7 +100,7 @@ export default function ServicesPage() {
                 Agregar Categoría
               </Button>
             </div>
-            <Categories initialCategories={categories} />
+            <Categories key={refreshKey} />
           </div>
         </TabsContent>
 
@@ -183,7 +150,14 @@ export default function ServicesPage() {
       <AddCategoryDialog
         open={isAddingCategory}
         onOpenChange={setIsAddingCategory}
-        onAdd={handleAddCategory}
+        onAdd={async (name) => {
+          setIsAddingCategory(false);
+          setRefreshKey(prev => prev + 1);
+          toast({
+            title: "Categoría creada",
+            description: "La categoría se ha creado exitosamente.",
+          });
+        }}
       />
     </div>
   );

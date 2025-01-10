@@ -10,11 +10,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { createCategory } from "@/lib/categories/actions";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface AddCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (name: string) => void;
+  onAdd: (name: string) => Promise<void>;
 }
 
 export function AddCategoryDialog({
@@ -23,12 +26,29 @@ export function AddCategoryDialog({
   onAdd,
 }: AddCategoryDialogProps) {
   const [name, setName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const isValid = name.length >= 3;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAdd(name);
-    setName("");
-    onOpenChange(false);
+    if (!isValid) return;
+
+    setIsLoading(true);
+    try {
+      const newCategory = await createCategory(name);
+      await onAdd(name);
+      setName("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo crear la categoría. Por favor intente nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,6 +65,8 @@ export function AddCategoryDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              disabled={isLoading}
+              placeholder="Mínimo 3 caracteres"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -52,10 +74,18 @@ export function AddCategoryDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
+              disabled={isLoading}
             >
               Cancelar
             </Button>
-            <Button type="submit">Guardar</Button>
+            <Button 
+              type="submit" 
+              disabled={!isValid || isLoading}
+              className={!isValid ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar
+            </Button>
           </div>
         </form>
       </DialogContent>
