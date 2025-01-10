@@ -78,7 +78,7 @@ export function Categories() {
         />
       ))}
       <AddSubcategoryDialog
-        categoryId={selectedCategory!.id}
+        categoryId={""}
         open={isAddingSubcategory}
         onOpenChange={setIsAddingSubcategory}
         onAdd={(name, minimumPrice) => {

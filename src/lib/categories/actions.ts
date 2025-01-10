@@ -42,6 +42,22 @@ export async function updateCategory(id: string, name: string): Promise<Category
 }
 
 export async function deleteCategory(id: string): Promise<void> {
+  // Primero verificar si hay técnicos asociados
+  const { data: technicians, error: techError } = await supabase
+    .from("technician_work_info")
+    .select("id")
+    .eq("category_id", id)
+    .limit(1);
+
+  if (techError) throw new Error(techError.message);
+
+  // Si hay técnicos asociados, no permitir la eliminación
+  if (technicians && technicians.length > 0) {
+    throw new Error("No se puede eliminar la categoría porque hay técnicos asociados a ella");
+  }
+
+  // Si no hay técnicos, proceder con la eliminación
+  // Las subcategorías se eliminarán automáticamente por la restricción ON DELETE CASCADE
   const { error } = await supabase
     .from("categories")
     .delete()

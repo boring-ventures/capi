@@ -5,7 +5,8 @@ import {
   text,
   decimal,
   timestamp,
-  jsonb
+  jsonb,
+  foreignKey
 } from "drizzle-orm/pg-core";
 
 // Tabla de Usuarios
@@ -129,7 +130,7 @@ export const technicianDocuments = pgTable("technician_documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   user_id: uuid("user_id")
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: "cascade" }),
   carnet_identidad_anverso: varchar("carnet_identidad_anverso", { length: 255 }),
   carnet_identidad_reverso: varchar("carnet_identidad_reverso", { length: 255 }),
   factura_luz: varchar("factura_luz", { length: 255 }),
@@ -143,7 +144,7 @@ export const technicianWorkInfo = pgTable("technician_work_info", {
   id: uuid("id").defaultRandom().primaryKey(),
   user_id: uuid("user_id")
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: "cascade" }),
   area_trabajo: varchar("area_trabajo", { length: 255 }).notNull(),
   anos_experiencia: varchar("anos_experiencia", { length: 255 }).notNull(),
   nombre_banco: varchar("nombre_banco", { length: 255 }).notNull(),
@@ -163,5 +164,5 @@ export const subcategories = pgTable("subcategories", {
   minimum_price: decimal("minimum_price", { precision: 10, scale: 2 }).notNull(),
   category_id: uuid("category_id")
     .notNull()
-    .references(() => categories.id),
+    .references(() => categories.id, { onDelete: "cascade" }),
 });
