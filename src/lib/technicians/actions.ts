@@ -83,6 +83,7 @@ export const createTechnician = async (technicianData: TechnicianData): Promise<
         nombre_banco: technicianData.nombreBanco,
         numero_cuenta: technicianData.numeroCuenta,
         tipo_cuenta: technicianData.tipoCuenta,
+        category_id: technicianData.areaTrabajo,
       })
       .select()
       .single();

@@ -1,7 +1,12 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { WorkArea } from "./types"
+import { getCategories } from "@/lib/categories/actions"
+import type { Category } from "@/lib/categories/actions"
+import { useToast } from "@/hooks/use-toast"
 
 interface WorkInfoFormProps {
   onChange: (field: string, value: string | number) => void;
@@ -9,13 +14,28 @@ interface WorkInfoFormProps {
 }
 
 export function WorkInfoForm({ onChange, values = {} }: WorkInfoFormProps) {
-  const workAreas: { value: WorkArea; label: string }[] = [
-    { value: 'plomeria', label: 'Plomería' },
-    { value: 'electricidad', label: 'Electricidad' },
-    { value: 'carpinteria', label: 'Carpintería' },
-    { value: 'pintura', label: 'Pintura' },
-    { value: 'limpieza', label: 'Limpieza' },
-  ]
+  const [categories, setCategories] = useState<Category[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories()
+        setCategories(data)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las categorías. Por favor intente nuevamente.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [toast])
 
   const accountTypes = [
     { value: 'ahorro', label: 'Cuenta de Ahorro' },
@@ -29,14 +49,15 @@ export function WorkInfoForm({ onChange, values = {} }: WorkInfoFormProps) {
         <Select 
           onValueChange={(value) => onChange('areaTrabajo', value)}
           defaultValue={values.areaTrabajo}
+          disabled={isLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Seleccionar área de trabajo" />
+            <SelectValue placeholder={isLoading ? "Cargando categorías..." : "Seleccionar área de trabajo"} />
           </SelectTrigger>
           <SelectContent>
-            {workAreas.map((area) => (
-              <SelectItem key={area.value} value={area.value}>
-                {area.label}
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -77,8 +77,8 @@ export function Categories() {
           onDeleteCategory={handleDeleteCategory}
         />
       ))}
-
       <AddSubcategoryDialog
+        categoryId={selectedCategory!.id}
         open={isAddingSubcategory}
         onOpenChange={setIsAddingSubcategory}
         onAdd={(name, minimumPrice) => {
