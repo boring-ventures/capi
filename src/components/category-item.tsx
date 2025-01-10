@@ -1,19 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
 import type { Category } from "@/lib/categories/actions";
+import type { Subcategory } from "@/lib/subcategories/actions";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EditCategoryDialog } from "./edit-category-dialog";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
+import { AddSubcategoryDialog } from "./add-subcategory-dialog";
+import { SubcategoriesTable } from "./subcategories-table";
+import { getSubcategories } from "@/lib/subcategories/actions";
+import { useToast } from "@/hooks/use-toast";
 
 interface CategoryItemProps {
   category: Category;
@@ -31,6 +28,46 @@ export function CategoryItem({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isAddingSubcategory, setIsAddingSubcategory] = useState(false);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const fetchSubcategories = async () => {
+    if (!isExpanded) return;
+    
+    setIsLoading(true);
+    try {
+      const data = await getSubcategories(category.id);
+      setSubcategories(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las subcategorías. Por favor intente nuevamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubcategories();
+  }, [isExpanded, category.id]);
+
+  const handleEditSubcategory = (id: string, name: string, minimumPrice: number) => {
+    setSubcategories(subcategories.map(subcategory =>
+      subcategory.id === id ? { ...subcategory, name, minimumPrice } : subcategory
+    ));
+  };
+
+  const handleDeleteSubcategory = (id: string) => {
+    setSubcategories(subcategories.filter(subcategory => subcategory.id !== id));
+  };
+
+  const handleAddSubcategory = (name: string, minimumPrice: number) => {
+    fetchSubcategories(); // Refresh the list after adding
+  };
 
   return (
     <div className="rounded-lg border">
@@ -72,7 +109,7 @@ export function CategoryItem({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              onAddSubcategory();
+              setIsAddingSubcategory(true);
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -83,38 +120,17 @@ export function CategoryItem({
 
       {isExpanded && (
         <div className="p-4 pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Subcategoría</TableHead>
-                <TableHead>Precio Mínimo</TableHead>
-                <TableHead>Servicios Activos</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {category.subcategories?.map(
-                (subcategory: {
-                  id: string;
-                  name: string;
-                  minimumPrice: number;
-                  activeServices: number;
-                }) => (
-                  <TableRow key={subcategory.id}>
-                    <TableCell>{subcategory.name}</TableCell>
-                    <TableCell>${subcategory.minimumPrice}</TableCell>
-                    <TableCell>{subcategory.activeServices}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )
-              )}
-            </TableBody>
-          </Table>
+          {isLoading ? (
+            <div className="text-center py-4 text-muted-foreground">
+              Cargando subcategorías...
+            </div>
+          ) : (
+            <SubcategoriesTable
+              subcategories={subcategories}
+              onEdit={handleEditSubcategory}
+              onDelete={handleDeleteSubcategory}
+            />
+          )}
         </div>
       )}
 
@@ -130,6 +146,13 @@ export function CategoryItem({
         onOpenChange={setIsDeleteDialogOpen}
         category={category}
         onDelete={onDeleteCategory}
+      />
+
+      <AddSubcategoryDialog
+        open={isAddingSubcategory}
+        onOpenChange={setIsAddingSubcategory}
+        categoryId={category.id}
+        onAdd={handleAddSubcategory}
       />
     </div>
   );
