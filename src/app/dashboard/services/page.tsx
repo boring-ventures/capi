@@ -139,7 +139,7 @@ export default function ServicesPage() {
 
         <TabsContent value="services">
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold">Todas las solicitudes</h2>
+            <h2 className="text-2xl font-bold">Solicitudes Recientes</h2>
             <FilterToolbar
               onFilterChange={handleFilterChange}
               onFilterClick={() => console.log("Filter clicked")}
