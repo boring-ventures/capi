@@ -10,71 +10,27 @@ import { FilterToolbar } from "@/components/filter-toolbar";
 import { ServiceCard } from "@/components/service-card";
 import { DisputesPanel } from "@/components/disputes-panel";
 import { ServiceDetailsModal } from "@/components/service-details-modal";
-import { InterventionModal } from "@/components/intervention-modal";
+import { useServices } from "@/hooks/useServices";
 import { useToast } from "@/hooks/use-toast";
-
-const mockServices = [
-  {
-    id: "1234",
-    status: "En Progreso",
-    client: "Juan Pérez",
-    technician: "Miguel Rodriguez",
-    category: "Electricidad",
-    price: 150,
-  },
-  {
-    id: "1235",
-    status: "Pendiente",
-    client: "María García",
-    technician: "Carlos López",
-    category: "Plomería",
-    price: 200,
-  },
-];
+import type { ServiceWithDetails } from "@/lib/services/actions";
 
 export default function ServicesPage() {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<ServiceWithDetails | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isInterventionModalOpen, setIsInterventionModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
+  const { data: services, isLoading } = useServices();
 
   const handleFilterChange = (status: string) => {
     console.log("Filter changed:", status);
   };
 
   const handleViewDetails = (id: string) => {
-    const service = mockServices.find((s) => s.id === id);
-    if (service) {
-      setSelectedService({
-        ...service,
-        date: "2024-01-08",
-        client: {
-          name: service.client,
-          phone: "123-456-7890",
-          address: "Calle Principal #123",
-        },
-        technician: {
-          name: service.technician,
-          phone: "098-765-4321",
-          rating: 4,
-        },
-        offers: {
-          initial: service.price - 20,
-          counter: service.price,
-          accepted: true,
-        },
-      });
-      setIsDetailsModalOpen(true);
-    }
-  };
-
-  const handleIntervene = (id: string) => {
-    const service = mockServices.find((s) => s.id === id);
+    const service = services?.find((s) => s.id === id);
     if (service) {
       setSelectedService(service);
-      setIsInterventionModalOpen(true);
+      setIsDetailsModalOpen(true);
     }
   };
 
@@ -107,20 +63,34 @@ export default function ServicesPage() {
         <TabsContent value="services">
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">Solicitudes Recientes</h2>
-            <FilterToolbar
+            {/* <FilterToolbar
               onFilterChange={handleFilterChange}
               onFilterClick={() => console.log("Filter clicked")}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mockServices.map((service) => (
-                <ServiceCard
-                  key={service.id}
-                  {...service}
-                  onViewDetails={handleViewDetails}
-                  onIntervene={handleIntervene}
-                />
-              ))}
-            </div>
+            /> */}
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Cargando servicios...
+              </div>
+            ) : services && services.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {services.map((service) => (
+                  <ServiceCard
+                    key={service.id}
+                    id={service.id}
+                    status={service.status}
+                    client={service.client.name}
+                    technician={service.technician?.name ?? "Sin asignar"}
+                    category={service.category.name}
+                    price={service.agreed_price ?? 0}
+                    onViewDetails={handleViewDetails}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay servicios disponibles
+              </div>
+            )}
           </div>
         </TabsContent>
 
@@ -130,21 +100,11 @@ export default function ServicesPage() {
       </Tabs>
 
       {selectedService && (
-        <>
-          <ServiceDetailsModal
-            isOpen={isDetailsModalOpen}
-            onClose={() => setIsDetailsModalOpen(false)}
-            service={selectedService}
-          />
-          <InterventionModal
-            isOpen={isInterventionModalOpen}
-            onClose={() => setIsInterventionModalOpen(false)}
-            serviceId={selectedService.id}
-            client={selectedService.client}
-            technician={selectedService.technician}
-            description="Descripción del problema..."
-          />
-        </>
+        <ServiceDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          service={selectedService}
+        />
       )}
 
       <AddCategoryDialog
