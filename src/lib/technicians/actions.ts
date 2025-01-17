@@ -35,7 +35,7 @@ export const createTechnician = async (technicianData: TechnicianData): Promise<
       name: `${technicianData.nombre} ${technicianData.apellido}`,
       email: technicianData.correoElectronico,
       phone: technicianData.telefono,
-      role: "tecnico",
+      role: "technician",
       status: "active",
     };
 
