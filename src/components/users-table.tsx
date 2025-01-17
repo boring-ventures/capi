@@ -134,13 +134,13 @@ export function UsersTable() {
                 <TableCell>
                   <UserAvatar
                     name={user.name}
-                    role={user.role as "cliente" | "tecnico"}
+                    role={user.role as "client" | "technician"}
                   />
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.phone || "N/A"}</TableCell>
-                <TableCell className="capitalize">
-                  {user.role.toLowerCase()}
+                <TableCell>
+                  {user.role === "client" ? "Cliente" : "Técnico"}
                 </TableCell>
                 <TableCell>
                   <UserStatus

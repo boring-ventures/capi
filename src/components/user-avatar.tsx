@@ -1,14 +1,18 @@
-import { User, UserCog } from 'lucide-react'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { User, UserCog } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface UserAvatarProps {
-  name: string
-  role: 'cliente' | 'tecnico'
+  name: string;
+  role: "client" | "technician";
 }
 
 export function UserAvatar({ name, role }: UserAvatarProps) {
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase()
-  const Icon = role === 'cliente' ? User : UserCog
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+  const Icon = role === "client" ? User : UserCog;
 
   return (
     <div className="flex items-center">
@@ -19,6 +23,5 @@ export function UserAvatar({ name, role }: UserAvatarProps) {
       </Avatar>
       <span>{name}</span>
     </div>
-  )
+  );
 }
-
