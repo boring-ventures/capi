@@ -1,20 +1,41 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { WorkArea } from "./types"
+import { getCategories } from "@/lib/categories/actions"
+import type { Category } from "@/lib/categories/actions"
+import { useToast } from "@/hooks/use-toast"
 
 interface WorkInfoFormProps {
-  onChange: (field: string, value: string | number) => void
+  onChange: (field: string, value: string | number) => void;
+  values?: Record<string, any>;
 }
 
-export function WorkInfoForm({ onChange }: WorkInfoFormProps) {
-  const workAreas: { value: WorkArea; label: string }[] = [
-    { value: 'plomeria', label: 'Plomería' },
-    { value: 'electricidad', label: 'Electricidad' },
-    { value: 'carpinteria', label: 'Carpintería' },
-    { value: 'pintura', label: 'Pintura' },
-    { value: 'limpieza', label: 'Limpieza' },
-  ]
+export function WorkInfoForm({ onChange, values = {} }: WorkInfoFormProps) {
+  const [categories, setCategories] = useState<Category[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories()
+        setCategories(data)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las categorías. Por favor intente nuevamente.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [toast])
 
   const accountTypes = [
     { value: 'ahorro', label: 'Cuenta de Ahorro' },
@@ -25,14 +46,18 @@ export function WorkInfoForm({ onChange }: WorkInfoFormProps) {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="areaTrabajo">Área de Trabajo</Label>
-        <Select onValueChange={(value) => onChange('areaTrabajo', value)}>
+        <Select 
+          onValueChange={(value) => onChange('areaTrabajo', value)}
+          defaultValue={values.areaTrabajo}
+          disabled={isLoading}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Seleccionar área de trabajo" />
+            <SelectValue placeholder={isLoading ? "Cargando categorías..." : "Seleccionar área de trabajo"} />
           </SelectTrigger>
           <SelectContent>
-            {workAreas.map((area) => (
-              <SelectItem key={area.value} value={area.value}>
-                {area.label}
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -46,6 +71,7 @@ export function WorkInfoForm({ onChange }: WorkInfoFormProps) {
           type="number"
           min="0"
           placeholder="5"
+          value={values.anosExperiencia || ''}
           onChange={(e) => onChange('anosExperiencia', parseInt(e.target.value, 10))}
         />
       </div>
@@ -55,6 +81,7 @@ export function WorkInfoForm({ onChange }: WorkInfoFormProps) {
         <Input
           id="nombreBanco"
           placeholder="Banco Nacional"
+          value={values.nombreBanco || ''}
           onChange={(e) => onChange('nombreBanco', e.target.value)}
         />
       </div>
@@ -64,13 +91,18 @@ export function WorkInfoForm({ onChange }: WorkInfoFormProps) {
         <Input
           id="numeroCuenta"
           placeholder="1234567890"
+          type="number"
+          value={values.numeroCuenta || ''}
           onChange={(e) => onChange('numeroCuenta', e.target.value)}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="tipoCuenta">Tipo de Cuenta</Label>
-        <Select onValueChange={(value) => onChange('tipoCuenta', value)}>
+        <Select 
+          onValueChange={(value) => onChange('tipoCuenta', value)}
+          defaultValue={values.tipoCuenta}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Seleccionar tipo de cuenta" />
           </SelectTrigger>

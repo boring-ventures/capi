@@ -3,23 +3,37 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from 'lucide-react'
-import { CreateUserModal } from "./create-user-modal"
+import { CreateTechnicianModal } from "./create-technician-modal"
+import UserTypeDialog from "./user-type-dialog"
 
 export function UserManagementHeader() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false)
+
+  const handleUserTypeSelected = (type: string) => {
+    if (type === 'Tecnico') {
+      setIsCreateModalOpen(true)
+    }
+  }
 
   return (
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-        <Button onClick={() => setIsModalOpen(true)}>
+        <Button onClick={() => setIsTypeDialogOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Usuario
         </Button>
       </div>
 
-      <CreateUserModal 
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
+      <UserTypeDialog 
+        open={isTypeDialogOpen}
+        onOpenChange={setIsTypeDialogOpen}
+        onSelect={handleUserTypeSelected}
+      />
+
+      <CreateTechnicianModal 
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
       />
     </>
   )
