@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Search } from 'lucide-react'
 import { Bar, Pie } from "react-chartjs-2"
 import {
@@ -14,59 +15,119 @@ import {
 } from "chart.js"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { useServices } from "@/hooks/useServices"
 
 // Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,  // Add this line to register ArcElement
+  ArcElement,
   Title,
   Tooltip,
   Legend
 )
 
 export function KpiDashboard() {
-  // Chart data
-  const barData = {
-    labels: ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"],
-    datasets: [
-      {
-        data: [400, 300, 500, 280, 580, 750, 400],
-        backgroundColor: "rgb(147, 147, 223)",
-      },
-    ],
-  }
+  const { data: services, isLoading } = useServices()
 
-  const pieData = {
-    labels: ["Completado", "En Progreso", "Cancelado"],
-    datasets: [
-      {
-        data: [45, 35, 20],
+  const metrics = useMemo(() => {
+    if (!services) return {
+      activeServices: 0,
+      completedServices: 0,
+      averageRating: 0,
+      averageResolutionTime: 0
+    }
+
+    const activeServices = services.filter(s => 
+      s.status === 'created' || s.status === 'in_progress'
+    ).length
+
+    const completedServices = services.filter(s => 
+      s.status === 'completed'
+    ).length
+
+    const techniciansWithRating = services
+      .filter(s => s.technician && s.technician.rating)
+      .map(s => s.technician!.rating)
+
+    const averageRating = techniciansWithRating.length
+      ? (techniciansWithRating.reduce((a, b) => a + b, 0) / techniciansWithRating.length).toFixed(1)
+      : 0
+
+    // Calcular tiempo promedio de resolución para servicios completados
+    const completedWithDates = services.filter(s => 
+      s.status === 'completed' && s.request_date && s.acceptance_date
+    )
+
+    const averageResolutionTime = completedWithDates.length
+      ? completedWithDates.reduce((acc, service) => {
+          const start = new Date(service.request_date)
+          const end = new Date(service.acceptance_date!)
+          return acc + (end.getTime() - start.getTime())
+        }, 0) / (completedWithDates.length * 3600000) // Convertir a horas
+      : 0
+
+    return {
+      activeServices,
+      completedServices,
+      averageRating,
+      averageResolutionTime: averageResolutionTime.toFixed(1)
+    }
+  }, [services])
+
+  // Datos para el gráfico de barras (últimos 7 días)
+  const barData = useMemo(() => {
+    if (!services) return {
+      labels: [],
+      datasets: [{ data: [], backgroundColor: "rgb(147, 147, 223)" }]
+    }
+
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      return d.toISOString().split('T')[0]
+    }).reverse()
+
+    const servicesByDay = last7Days.map(date =>
+      services.filter(s => s.request_date.startsWith(date)).length
+    )
+
+    return {
+      labels: ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"],
+      datasets: [{
+        data: servicesByDay,
+        backgroundColor: "rgb(147, 147, 223)",
+      }]
+    }
+  }, [services])
+
+  // Datos para el gráfico circular
+  const pieData = useMemo(() => {
+    if (!services) return {
+      labels: [],
+      datasets: [{ data: [], backgroundColor: [] }]
+    }
+
+    const statusCount = {
+      completed: services.filter(s => s.status === 'completed').length,
+      in_progress: services.filter(s => s.status === 'in_progress').length,
+      canceled: services.filter(s => s.status === 'canceled').length,
+    }
+
+    return {
+      labels: ["Completado", "En Progreso", "Cancelado"],
+      datasets: [{
+        data: [statusCount.completed, statusCount.in_progress, statusCount.canceled],
         backgroundColor: [
           "rgb(54, 162, 235)",
           "rgb(255, 205, 86)",
           "rgb(75, 192, 192)",
         ],
-      },
-    ],
-  }
+      }]
+    }
+  }, [services])
 
   const chartOptions = {
     responsive: true,
@@ -89,6 +150,10 @@ export function KpiDashboard() {
         position: "right" as const,
       },
     },
+  }
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Cargando métricas...</div>
   }
 
   return (
@@ -122,8 +187,8 @@ export function KpiDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">254</div>
-            <p className="text-xs text-muted-foreground">+20.1% del mes pasado</p>
+            <div className="text-2xl font-bold">{metrics.activeServices}</div>
+            <p className="text-xs text-muted-foreground">Servicios en proceso</p>
           </CardContent>
         </Card>
         <Card>
@@ -143,8 +208,8 @@ export function KpiDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,429</div>
-            <p className="text-xs text-muted-foreground">+180.1% del mes pasado</p>
+            <div className="text-2xl font-bold">{metrics.completedServices}</div>
+            <p className="text-xs text-muted-foreground">Total de servicios finalizados</p>
           </CardContent>
         </Card>
         <Card>
@@ -165,8 +230,8 @@ export function KpiDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.3</div>
-            <p className="text-xs text-muted-foreground">-2.4% del mes pasado</p>
+            <div className="text-2xl font-bold">{metrics.averageRating}</div>
+            <p className="text-xs text-muted-foreground">Promedio de técnicos</p>
           </CardContent>
         </Card>
         <Card>
@@ -186,8 +251,8 @@ export function KpiDashboard() {
             </svg>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2.5h</div>
-            <p className="text-xs text-muted-foreground">-15 min del mes pasado</p>
+            <div className="text-2xl font-bold">{metrics.averageResolutionTime}h</div>
+            <p className="text-xs text-muted-foreground">Tiempo promedio de finalización</p>
           </CardContent>
         </Card>
       </div>
@@ -210,77 +275,6 @@ export function KpiDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Reportes Personalizados</CardTitle>
-          <div className="flex items-center gap-2 mt-4">
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Categoría de Servicio" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="limpieza">Limpieza</SelectItem>
-                <SelectItem value="electricidad">Electricidad</SelectItem>
-                <SelectItem value="plomeria">Plomería</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Región" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="norte">Norte</SelectItem>
-                <SelectItem value="sur">Sur</SelectItem>
-                <SelectItem value="este">Este</SelectItem>
-                <SelectItem value="oeste">Oeste</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline">Filtrar</Button>
-            <Button variant="default">Exportar</Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID Servicio</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Técnico</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Calificación</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>SRV001</TableCell>
-                <TableCell>Limpieza</TableCell>
-                <TableCell>Juan Pérez</TableCell>
-                <TableCell>2023-06-01</TableCell>
-                <TableCell>Completado</TableCell>
-                <TableCell>4.5</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>SRV002</TableCell>
-                <TableCell>Electricidad</TableCell>
-                <TableCell>María Gómez</TableCell>
-                <TableCell>2023-06-02</TableCell>
-                <TableCell>En Progreso</TableCell>
-                <TableCell>-</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>SRV003</TableCell>
-                <TableCell>Plomería</TableCell>
-                <TableCell>Carlos Rodríguez</TableCell>
-                <TableCell>2023-06-03</TableCell>
-                <TableCell>Cancelado</TableCell>
-                <TableCell>-</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   )
 }
