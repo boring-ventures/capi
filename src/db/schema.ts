@@ -29,6 +29,10 @@ export const users = pgTable("users", {
   role: varchar("role", { length: 255 }).notNull(),
   status: varchar("status", { length: 255 }).notNull(),
   rating: decimal("rating", { precision: 2, scale: 1 }).default("5.0"),
+  fechaNacimiento: timestamp("fechaNacimiento"),
+  contraseña: varchar("contraseña", { length: 255 }).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  reviewStatus: varchar("reviewStatus", { length: 255 }).notNull().default("pending"),
 });
 
 // Tabla de Ubicaciones
@@ -117,14 +121,24 @@ export const technicianWorkInfo = pgTable("technician_work_info", {
   user_id: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  area_trabajo: varchar("area_trabajo", { length: 255 }).notNull(),
+  area_trabajo: jsonb("area_trabajo").notNull().default([]),
   anos_experiencia: varchar("anos_experiencia", { length: 255 }).notNull(),
-  nombre_banco: varchar("nombre_banco", { length: 255 }).notNull(),
-  numero_cuenta: varchar("numero_cuenta", { length: 255 }).notNull(),
-  tipo_cuenta: varchar("tipo_cuenta", { length: 255 }).notNull(),
+  nombre_banco: varchar("nombre_banco", { length: 255 }),
+  numero_cuenta: varchar("numero_cuenta", { length: 255 }),
+  tipo_cuenta: varchar("tipo_cuenta", { length: 255 }),
   category_id: uuid("category_id")
     .notNull()
     .references(() => categories.id),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabla de Fotos de Perfil de Usuarios
+export const userProfilePhotos = pgTable("user_profile_photos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  photo_url: varchar("photo_url", { length: 255 }),
+  upload_date: timestamp("upload_date").defaultNow().notNull(),
 });

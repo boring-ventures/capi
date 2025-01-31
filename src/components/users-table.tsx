@@ -23,13 +23,14 @@ import { UserRating } from "./user-rating";
 import { UserActions } from "./user-actions";
 import { useUsers } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function UsersTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [showPassword, setShowPassword] = useState(false);
 
   const { data: users = [], isLoading, error } = useUsers();
 
@@ -151,6 +152,14 @@ export function UsersTable() {
                 </TableCell>
                 <TableCell>
                   <UserRating rating={5} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    {showPassword ? user.contraseña : "••••••"}
+                    <button onClick={() => setShowPassword(!showPassword)} className="ml-2">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <UserActions userId={user.id} />

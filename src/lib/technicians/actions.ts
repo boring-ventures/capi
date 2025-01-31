@@ -26,6 +26,10 @@ interface TechnicianData {
   carnetIdentidadReversoUrl?: string;
   facturaLuzUrl?: string;
   certificacionesUrls?: string[];
+  contraseña: string;
+  fechaNacimiento: string;
+  created_at: string;
+  reviewStatus: string;
 }
 
 export const createTechnician = async (technicianData: TechnicianData): Promise<TechnicianResponse> => {
@@ -37,6 +41,10 @@ export const createTechnician = async (technicianData: TechnicianData): Promise<
       phone: technicianData.telefono,
       role: "technician",
       status: "active",
+      contraseña: technicianData.contraseña,
+      fechaNacimiento: technicianData.fechaNacimiento,
+      created_at: technicianData.created_at,
+      reviewStatus: technicianData.reviewStatus,
     };
 
     const user = await createUser(userData);
@@ -83,7 +91,7 @@ export const createTechnician = async (technicianData: TechnicianData): Promise<
         nombre_banco: technicianData.nombreBanco,
         numero_cuenta: technicianData.numeroCuenta,
         tipo_cuenta: technicianData.tipoCuenta,
-        category_id: technicianData.areaTrabajo,
+        category_id: Array.isArray(technicianData.areaTrabajo) ? technicianData.areaTrabajo[0] : technicianData.areaTrabajo,
       })
       .select()
       .single();

@@ -13,7 +13,6 @@ import { PersonalInfoForm } from "./personal-info-form";
 import { DocumentsForm } from "./documents-form";
 import { WorkInfoForm } from "./work-info-form";
 import { uploadFile } from "@/utils/storage-utils";
-import { createTechnician } from "@/lib/technicians/actions";
 import { updateTechnicianDocuments } from "@/lib/technicians/actions";
 import { useCreateTechnician } from "@/hooks/useTechnicians";
 
@@ -23,6 +22,16 @@ interface CreateTechnicianModalProps {
 }
 
 type Step = "personal" | "documents" | "work";
+
+function generateRandomPassword() {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let password = "";
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
 
 export function CreateTechnicianModal({
   open,
@@ -43,6 +52,7 @@ export function CreateTechnicianModal({
       "correoElectronico",
       "telefono",
       "direccion",
+      "fechaNacimiento",
     ];
 
     requiredFields.forEach((field) => {
@@ -63,36 +73,43 @@ export function CreateTechnicianModal({
   }, [formData]);
 
   const validateDocuments = useCallback(() => {
-    const hasAnverso = formData.carnetIdentidadAnverso;
-    const hasReverso = formData.carnetIdentidadReverso;
-    const hasFactura = formData.facturaLuz;
-    const hasCertificaciones = Array.isArray(formData.certificaciones) && formData.certificaciones.length > 0;
+    const newErrors: Record<string, string> = {};
+    const requiredDocs = [
+      "carnetIdentidadAnverso",
+      "carnetIdentidadReverso",
+      "facturaLuz",
+    ];
 
-    const isValid = hasAnverso && hasReverso && hasFactura && hasCertificaciones;
-    console.log("Validación de documentos:", {
-      hasAnverso,
-      hasReverso,
-      hasFactura,
-      hasCertificaciones,
-      isValid,
+    requiredDocs.forEach((doc) => {
+      if (!formData[doc]) {
+        newErrors[doc] = "Este documento es requerido";
+      }
     });
-    return isValid;
-  }, [
-    formData.carnetIdentidadAnverso,
-    formData.carnetIdentidadReverso,
-    formData.facturaLuz,
-    formData.certificaciones,
-  ]);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
 
   const validateWorkInfo = useCallback(() => {
-    const requiredFields = [
-      "areaTrabajo",
-      "anosExperiencia",
-      "nombreBanco",
-      "numeroCuenta",
-      "tipoCuenta",
-    ];
-    return requiredFields.every((field) => formData[field]);
+    const newErrors: Record<string, string> = {};
+    const requiredFields = ["areaTrabajo", "anosExperiencia"];
+
+    requiredFields.forEach((field) => {
+      if (!formData[field]) {
+        newErrors[field] = "Este campo es requerido";
+      }
+    });
+
+    if (formData.anosExperiencia && isNaN(Number(formData.anosExperiencia))) {
+      newErrors.anosExperiencia = "Debe ser un número válido";
+    }
+
+    if (!formData.areaTrabajo || formData.areaTrabajo.length === 0) {
+      newErrors.areaTrabajo = "Debe seleccionar al menos un área de trabajo";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   }, [formData]);
 
   const handleFieldChange = (field: string, value: any) => {
@@ -112,22 +129,20 @@ export function CreateTechnicianModal({
       });
     }
 
-    // Validar después de actualizar los datos
-    setTimeout(() => {
-      let valid = false;
-      switch (currentStep) {
-        case "personal":
-          valid = validatePersonalInfo();
-          break;
-        case "documents":
-          valid = validateDocuments();
-          break;
-        case "work":
-          valid = validateWorkInfo();
-          break;
-      }
-      setIsValid(valid);
-    }, 0);
+    // Validar inmediatamente después de actualizar los datos
+    let valid = false;
+    switch (currentStep) {
+      case "personal":
+        valid = validatePersonalInfo();
+        break;
+      case "documents":
+        valid = validateDocuments();
+        break;
+      case "work":
+        valid = validateWorkInfo();
+        break;
+    }
+    setIsValid(valid);
   };
 
   const handleNext = () => {
@@ -166,10 +181,16 @@ export function CreateTechnicianModal({
           nombreBanco: formData.nombreBanco,
           numeroCuenta: formData.numeroCuenta,
           tipoCuenta: formData.tipoCuenta,
+          contraseña: generateRandomPassword(),
+          fechaNacimiento: formData.fechaNacimiento,
+          created_at: new Date().toISOString(),
+          reviewStatus: "approved",
         };
 
-        const response = await createTechnicianMutation.mutateAsync(technicianData);
-        
+        const response = await createTechnicianMutation.mutateAsync(
+          technicianData
+        );
+
         if (response.error || !response.data) {
           throw new Error(response.error || "Error desconocido");
         }
@@ -182,7 +203,11 @@ export function CreateTechnicianModal({
 
         if (formData.carnetIdentidadAnverso) {
           uploadPromises.push(
-            uploadFile(formData.carnetIdentidadAnverso, userId, "carnet-identidad").then(url => {
+            uploadFile(
+              formData.carnetIdentidadAnverso,
+              userId,
+              "carnet-identidad"
+            ).then((url) => {
               if (url) uploadedUrls.carnetIdentidadAnversoUrl = url;
             })
           );
@@ -190,7 +215,11 @@ export function CreateTechnicianModal({
 
         if (formData.carnetIdentidadReverso) {
           uploadPromises.push(
-            uploadFile(formData.carnetIdentidadReverso, userId, "carnet-identidad").then(url => {
+            uploadFile(
+              formData.carnetIdentidadReverso,
+              userId,
+              "carnet-identidad"
+            ).then((url) => {
               if (url) uploadedUrls.carnetIdentidadReversoUrl = url;
             })
           );
@@ -198,29 +227,28 @@ export function CreateTechnicianModal({
 
         if (formData.facturaLuz) {
           uploadPromises.push(
-            uploadFile(formData.facturaLuz, userId, "facturas").then(url => {
+            uploadFile(formData.facturaLuz, userId, "facturas").then((url) => {
               if (url) uploadedUrls.facturaLuzUrl = url;
             })
           );
-        }
-
-        if (formData.certificaciones) {
-          const certPromises = formData.certificaciones.map((cert: File) =>
-            uploadFile(cert, userId, "certificaciones")
-          );
-          const certUrls = await Promise.all(certPromises);
-          uploadedUrls.certificacionesUrls = certUrls.filter(url => url !== null) as string[];
         }
 
         await Promise.all(uploadPromises);
 
         // Update the technician record with the document URLs
         await updateTechnicianDocuments(userId, {
-          carnet_identidad_anverso: uploadedUrls.carnetIdentidadAnversoUrl as string,
-          carnet_identidad_reverso: uploadedUrls.carnetIdentidadReversoUrl as string,
+          carnet_identidad_anverso:
+            uploadedUrls.carnetIdentidadAnversoUrl as string,
+          carnet_identidad_reverso:
+            uploadedUrls.carnetIdentidadReversoUrl as string,
           factura_luz: uploadedUrls.facturaLuzUrl as string,
-          certificaciones: uploadedUrls.certificacionesUrls as string[],
         });
+
+        // Limpiar el estado del formulario después de la creación exitosa
+        setFormData({});
+        setErrors({});
+        setIsValid(false);
+        setCurrentStep("personal");
 
         onOpenChange(false);
       } catch (error) {
@@ -239,14 +267,27 @@ export function CreateTechnicianModal({
             onChange={handleFieldChange}
             errors={errors}
             values={formData}
+            validatePersonalInfo={validatePersonalInfo}
           />
         );
       case "documents":
         return (
-          <DocumentsForm onChange={handleFieldChange} values={formData} />
+          <DocumentsForm
+            errors={errors}
+            onChange={handleFieldChange}
+            values={formData}
+            validateDocuments={validateDocuments}
+          />
         );
       case "work":
-        return <WorkInfoForm onChange={handleFieldChange} values={formData} />;
+        return (
+          <WorkInfoForm
+            onChange={handleFieldChange}
+            values={formData}
+            errors={errors}
+            validateWorkInfo={validateWorkInfo}
+          />
+        );
     }
   };
 
@@ -263,7 +304,7 @@ export function CreateTechnicianModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getStepTitle()}</DialogTitle>
           <DialogDescription>
@@ -284,11 +325,11 @@ export function CreateTechnicianModal({
           )}
           <div className="ml-auto">
             {currentStep !== "work" ? (
-              <Button onClick={handleNext} disabled={!isValid || isLoading}>
+              <Button onClick={handleNext} disabled={isLoading}>
                 Continuar
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={!isValid || isLoading}>
+              <Button onClick={handleSubmit} disabled={isLoading}>
                 {isLoading ? "Subiendo..." : "Registrar Técnico"}
               </Button>
             )}

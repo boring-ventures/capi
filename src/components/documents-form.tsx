@@ -7,9 +7,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface DocumentsFormProps {
   onChange: (field: string, value: File | File[] | null) => void;
   values: Record<string, any>;
+  validateDocuments: () => boolean;
+  errors: Record<string, string>;
 }
 
-export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
+export function DocumentsForm({
+  onChange,
+  values,
+  validateDocuments,
+  errors,
+}: DocumentsFormProps) {
   const handleDelete = (field: string) => {
     onChange(field, null);
   };
@@ -27,18 +34,23 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
   };
 
   const getImagePreview = (file: File) => {
-    if (file.type.startsWith('image/')) {
+    if (file.type.startsWith("image/")) {
       return URL.createObjectURL(file);
     }
     // Para archivos PDF, podrías retornar un ícono o imagen por defecto
-    return '/pdf-icon.png'; // Asegúrate de tener este archivo en tu carpeta public
+    return "/pdf-icon.png"; // Asegúrate de tener este archivo en tu carpeta public
+  };
+
+  const handleFieldChange = (field: string, value: File | File[] | null) => {
+    onChange(field, value);
+    setTimeout(() => validateDocuments(), 0);
   };
 
   return (
     <ScrollArea className="h-[60vh] pr-4">
       <div className="space-y-6 p-2">
         <div className="space-y-4">
-          <Label>Carnet de Identidad</Label>
+          <Label>Carnet de Identidad *</Label>
           <div className="grid grid-cols-2 gap-4">
             {/* Anverso */}
             <div className="space-y-2">
@@ -51,7 +63,10 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files?.[0]) {
-                        onChange("carnetIdentidadAnverso", e.target.files[0]);
+                        handleFieldChange(
+                          "carnetIdentidadAnverso",
+                          e.target.files[0]
+                        );
                       }
                     }}
                   />
@@ -94,6 +109,11 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                   </div>
                 )}
               </div>
+              {errors.carnetIdentidadAnverso && (
+                <p className="text-sm text-red-500">
+                  {errors.carnetIdentidadAnverso}
+                </p>
+              )}
             </div>
 
             {/* Reverso */}
@@ -107,7 +127,10 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                     accept="image/*"
                     onChange={(e) => {
                       if (e.target.files?.[0]) {
-                        onChange("carnetIdentidadReverso", e.target.files[0]);
+                        handleFieldChange(
+                          "carnetIdentidadReverso",
+                          e.target.files[0]
+                        );
                       }
                     }}
                   />
@@ -150,6 +173,11 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                   </div>
                 )}
               </div>
+              {errors.carnetIdentidadReverso && (
+                <p className="text-sm text-red-500">
+                  {errors.carnetIdentidadReverso}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -167,7 +195,7 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                 accept=".pdf,image/*"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
-                    onChange("facturaLuz", e.target.files[0]);
+                    handleFieldChange("facturaLuz", e.target.files[0]);
                   }
                 }}
               />
@@ -207,6 +235,11 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                 </Button>
               </div>
             )}
+            {errors.facturaLuz && (
+              <p className="text-sm text-red-500">
+                {errors.facturaLuz}
+              </p>
+            )}
           </div>
         </div>
 
@@ -226,14 +259,19 @@ export function DocumentsForm({ onChange, values }: DocumentsFormProps) {
                     const currentFiles = Array.isArray(values.certificaciones)
                       ? values.certificaciones
                       : [];
-                    onChange("certificaciones", [...currentFiles, ...newFiles]);
+                    handleFieldChange("certificaciones", [
+                      ...currentFiles,
+                      ...newFiles,
+                    ]);
                   }
                 }}
               />
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => document.getElementById("certificaciones")?.click()}
+                onClick={() =>
+                  document.getElementById("certificaciones")?.click()
+                }
               >
                 <Upload className="mr-2 h-4 w-4" />
                 Añadir Certificaciones

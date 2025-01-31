@@ -8,12 +8,14 @@ interface PersonalInfoFormProps {
   onChange: (field: string, value: string | File | null) => void;
   errors?: Record<string, string>;
   values?: Record<string, any>;
+  validatePersonalInfo: () => boolean;
 }
 
 export function PersonalInfoForm({
   onChange,
   errors = {},
   values = {},
+  validatePersonalInfo,
 }: PersonalInfoFormProps) {
   const handleImageDelete = () => {
     onChange("fotoPerfil", null);
@@ -24,8 +26,14 @@ export function PersonalInfoForm({
       ? URL.createObjectURL(values.fotoPerfil)
       : null;
 
+  const handleFieldChange = (field: string, value: string | File | null) => {
+    onChange(field, value);
+    // Validar inmediatamente después de actualizar los datos
+    setTimeout(() => validatePersonalInfo(), 0);
+  };
+
   return (
-    <ScrollArea className="h-[500px] [&_[data-radix-scroll-area-scrollbar]]:hidden">
+    <ScrollArea className="h-[80vh] overflow-y-auto">
       <div className="space-y-2 p-1">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -34,7 +42,7 @@ export function PersonalInfoForm({
               id="nombre"
               placeholder="Juan"
               value={values.nombre || ""}
-              onChange={(e) => onChange("nombre", e.target.value)}
+              onChange={(e) => handleFieldChange("nombre", e.target.value)}
               className={errors.nombre ? "border-red-500" : ""}
             />
             {errors.nombre && (
@@ -47,7 +55,7 @@ export function PersonalInfoForm({
               id="apellido"
               placeholder="Pérez"
               value={values.apellido || ""}
-              onChange={(e) => onChange("apellido", e.target.value)}
+              onChange={(e) => handleFieldChange("apellido", e.target.value)}
               className={errors.apellido ? "border-red-500" : ""}
             />
             {errors.apellido && (
@@ -62,7 +70,9 @@ export function PersonalInfoForm({
             type="email"
             placeholder="juan.perez@ejemplo.com"
             value={values.correoElectronico || ""}
-            onChange={(e) => onChange("correoElectronico", e.target.value)}
+            onChange={(e) =>
+              handleFieldChange("correoElectronico", e.target.value)
+            }
             className={errors.correoElectronico ? "border-red-500" : ""}
           />
           {errors.correoElectronico && (
@@ -76,7 +86,7 @@ export function PersonalInfoForm({
             type="tel"
             placeholder="+591 12345678"
             value={values.telefono || ""}
-            onChange={(e) => onChange("telefono", e.target.value)}
+            onChange={(e) => handleFieldChange("telefono", e.target.value)}
             className={errors.telefono ? "border-red-500" : ""}
           />
           {errors.telefono && (
@@ -89,8 +99,21 @@ export function PersonalInfoForm({
             id="direccion"
             placeholder="Calle 123, Ciudad, Departamento"
             value={values.direccion || ""}
-            onChange={(e) => onChange("direccion", e.target.value)}
+            onChange={(e) => handleFieldChange("direccion", e.target.value)}
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fechaNacimiento">Fecha de Nacimiento *</Label>
+          <Input
+            id="fechaNacimiento"
+            type="date"
+            value={values.fechaNacimiento || ""}
+            onChange={(e) => handleFieldChange("fechaNacimiento", e.target.value)}
+            className={errors.fechaNacimiento ? "border-red-500" : ""}
+          />
+          {errors.fechaNacimiento && (
+            <p className="text-sm text-red-500">{errors.fechaNacimiento}</p>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="fotoPerfil">Foto de Perfil</Label>
@@ -103,7 +126,7 @@ export function PersonalInfoForm({
                 accept="image/*"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
-                    onChange("fotoPerfil", e.target.files[0]);
+                    handleFieldChange("fotoPerfil", e.target.files[0]);
                   }
                 }}
               />
