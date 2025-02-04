@@ -51,7 +51,6 @@ export function CreateTechnicianModal({
       "apellido",
       "correoElectronico",
       "telefono",
-      "direccion",
       "fechaNacimiento",
     ];
 

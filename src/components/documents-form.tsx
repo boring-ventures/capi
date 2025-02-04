@@ -33,12 +33,16 @@ export function DocumentsForm({
     }
   };
 
-  const getImagePreview = (file: File) => {
-    if (file.type.startsWith("image/")) {
+  const getImagePreview = (file: File | string) => {
+    if (typeof file === "string") {
+      return file;
+    }
+
+    if (file instanceof File && file.type.startsWith("image/")) {
       return URL.createObjectURL(file);
     }
-    // Para archivos PDF, podrías retornar un ícono o imagen por defecto
-    return "/pdf-icon.png"; // Asegúrate de tener este archivo en tu carpeta public
+
+    return "../app/assets/default-document-icon.png";
   };
 
   const handleFieldChange = (field: string, value: File | File[] | null) => {
@@ -236,9 +240,7 @@ export function DocumentsForm({
               </div>
             )}
             {errors.facturaLuz && (
-              <p className="text-sm text-red-500">
-                {errors.facturaLuz}
-              </p>
+              <p className="text-sm text-red-500">{errors.facturaLuz}</p>
             )}
           </div>
         </div>

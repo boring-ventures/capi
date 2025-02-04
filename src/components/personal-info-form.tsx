@@ -94,15 +94,6 @@ export function PersonalInfoForm({
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="direccion">Dirección</Label>
-          <Input
-            id="direccion"
-            placeholder="Calle 123, Ciudad, Departamento"
-            value={values.direccion || ""}
-            onChange={(e) => handleFieldChange("direccion", e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
           <Label htmlFor="fechaNacimiento">Fecha de Nacimiento *</Label>
           <Input
             id="fechaNacimiento"
