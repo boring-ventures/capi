@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { UserProfileModal } from "./user-profile-modal"
+import { TechnicianProfileModal } from "./technician-profile-modal"
 import { EditUserModal } from "./edit-user-modal"
 import { useUser, useDeleteUser } from "@/hooks/useUsers"
 import { toast } from "sonner"
@@ -27,6 +28,46 @@ export function UserActions({ userId }: UserActionsProps) {
       })
     }
   }
+
+  const renderProfileModal = () => {
+    if (!userData) return null;
+
+    if (userData.role === "technician") {
+      return (
+        <TechnicianProfileModal
+          open={isProfileOpen}
+          onOpenChange={setIsProfileOpen}
+          technician={{
+            id: userData.id,
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            address: userData.address,
+            created_at: userData.created_at,
+            photo_url: userData.photo_url
+          }}
+        />
+      );
+    }
+
+    return (
+      <UserProfileModal
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
+        user={{
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          phone: userData.phone,
+          address: userData.address,
+          registrationDate: userData.created_at,
+          services: [], // Si necesitas los servicios, deberías obtenerlos de la base de datos
+          reviews: [] // Si necesitas las reseñas, deberías obtenerlas de la base de datos
+        }}
+      />
+    );
+  };
 
   return (
     <>
@@ -62,13 +103,7 @@ export function UserActions({ userId }: UserActionsProps) {
         </Button>
       </div>
 
-      {userData && (
-        <UserProfileModal 
-          open={isProfileOpen}
-          onOpenChange={setIsProfileOpen}
-          user={userData}
-        />
-      )}
+      {userData && renderProfileModal()}
 
       <EditUserModal
         open={isEditOpen}
