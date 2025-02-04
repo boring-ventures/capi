@@ -210,13 +210,14 @@ export const updateTechnicianDocuments = async (
 
 export const updateTechnicianWorkInfo = async (
   userId: string,
-  workInfo: Partial<{
-    area_trabajo: string;
+  workInfo: {
+    area_trabajo: any;
     anos_experiencia: string;
-    nombre_banco: string;
-    numero_cuenta: string;
-    tipo_cuenta: string;
-  }>
+    nombre_banco?: string;
+    numero_cuenta?: string;
+    tipo_cuenta?: string;
+    category_id?: string;
+  }
 ) => {
   try {
     const { data, error } = await supabase

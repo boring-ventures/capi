@@ -10,8 +10,11 @@ export const uploadFile = async (
     const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
     const filePath = `${userId}/${path}/${fileName}`;
 
+    // Seleccionar el bucket correcto según el tipo de archivo
+    const bucket = path === "profile-photos" ? "profilePictures" : "docsTechnician";
+
     const { error: uploadError } = await supabase.storage
-      .from("docsTechnician")
+      .from(bucket)
       .upload(filePath, file);
 
     if (uploadError) {
@@ -19,7 +22,7 @@ export const uploadFile = async (
     }
 
     const { data } = supabase.storage
-      .from("docsTechnician")
+      .from(bucket)
       .getPublicUrl(filePath);
 
     return data.publicUrl;
@@ -64,5 +67,47 @@ export const getFilesByUserId = async (userId: string, path?: string): Promise<s
   } catch (error) {
     console.error("Error getting files:", error);
     return [];
+  }
+};
+
+export const uploadProfilePhoto = async (
+  file: File,
+  userId: string
+): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
+
+    // Subir al bucket de fotos de perfil
+    const { error: uploadError } = await supabase.storage
+      .from("profilePictures")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from("profilePictures")
+      .getPublicUrl(filePath);
+
+    // Registrar en la tabla user_profile_photos
+    const { error: dbError } = await supabase
+      .from("user_profile_photos")
+      .upsert({
+        user_id: userId,
+        photo_url: data.publicUrl,
+        updated_at: new Date().toISOString()
+      });
+
+    if (dbError) {
+      throw dbError;
+    }
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error uploading profile photo:", error);
+    return null;
   }
 }; 
