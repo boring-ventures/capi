@@ -5,32 +5,32 @@
 @layer base {
   :root {
     /* Light theme */
-    --background: 24 100% 98%; /* #FFF6F3 - Cream white */
+    --background: 24 30% 95%; /* Lighter cream */
     --foreground: 176 87% 9%; /* #022E2C - Dark green */
     
     /* Primary brand color - Dark Green */
     --primary: 176 87% 9%; /* #022E2C */
-    --primary-foreground: 24 100% 98%; /* #FFF6F3 */
+    --primary-foreground: 24 30% 95%; /* Cream white */
     
     /* Secondary colors - Lime for accents */
     --secondary: 78 100% 47%; /* #B3F200 */
     --secondary-foreground: 176 87% 9%; /* #022E2C */
     
     /* UI Elements */
-    --card: 24 100% 98%; /* #FFF6F3 */
+    --card: 24 30% 98%; /* Cream white */
     --card-foreground: 176 87% 9%; /* #022E2C */
-    --popover: 24 100% 98%; /* #FFF6F3 */
+    --popover: 24 30% 98%; /* Cream white */
     --popover-foreground: 176 87% 9%; /* #022E2C */
-    --muted: 176 87% 95%; /* Very light green */
-    --muted-foreground: 176 87% 30%; /* Muted dark green */
+    --muted: 24 30% 92%; /* Muted cream */
+    --muted-foreground: 176 87% 15%; /* Darker green */
     --accent: 220 100% 50%; /* #0052FF - Blue */
-    --accent-foreground: 24 100% 98%; /* #FFF6F3 */
+    --accent-foreground: 24 30% 98%; /* Cream white */
     
     /* System colors */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 24 100% 98%; /* #FFF6F3 */
-    --border: 176 87% 90%; /* Very light green border */
-    --input: 176 87% 90%; /* Very light green input */
+    --destructive-foreground: 24 30% 98%; /* Cream white */
+    --border: 176 87% 15%; /* Darker green border */
+    --input: 24 30% 92%; /* Cream input background */
     --ring: 176 87% 9%; /* #022E2C */
     --radius: 0.5rem;
 
@@ -38,27 +38,27 @@
     --chart-1: 176 87% 9%; /* #022E2C - Dark Green */
     --chart-2: 78 100% 47%; /* #B3F200 - Lime */
     --chart-3: 220 100% 50%; /* #0052FF - Blue */
-    --chart-4: 24 100% 98%; /* #FFF6F3 - Cream */
-    --chart-5: 176 87% 20%; /* Lighter Dark Green */
+    --chart-4: 24 30% 98%; /* Cream */
+    --chart-5: 176 87% 15%; /* Darker Green */
 
     /* Sidebar specific */
     --sidebar-background: 176 87% 9%; /* #022E2C */
-    --sidebar-foreground: 24 100% 98%; /* #FFF6F3 */
-    --sidebar-primary: 176 87% 15%; /* Slightly lighter dark green */
-    --sidebar-primary-foreground: 24 100% 98%; /* #FFF6F3 */
+    --sidebar-foreground: 24 30% 98%; /* Cream white */
+    --sidebar-primary: 176 87% 12%; /* Dark green */
+    --sidebar-primary-foreground: 24 30% 98%; /* Cream white */
     --sidebar-accent: 78 100% 47%; /* #B3F200 */
     --sidebar-accent-foreground: 176 87% 9%; /* #022E2C */
-    --sidebar-border: 176 87% 15%;
+    --sidebar-border: 176 87% 12%; /* Dark green */
     --sidebar-ring: 176 87% 9%; /* #022E2C */
   }
 
   .dark {
     /* Dark theme */
     --background: 176 87% 9%; /* #022E2C - Dark green */
-    --foreground: 24 100% 98%; /* #FFF6F3 - Cream white */
+    --foreground: 24 30% 98%; /* Cream white */
     
     /* Primary brand color - Cream White */
-    --primary: 24 100% 98%; /* #FFF6F3 */
+    --primary: 24 30% 98%; /* Cream white */
     --primary-foreground: 176 87% 9%; /* #022E2C */
     
     /* Secondary colors - Lime for accents */
@@ -67,45 +67,45 @@
     
     /* UI Elements */
     --card: 176 87% 12%; /* Slightly lighter dark green */
-    --card-foreground: 24 100% 98%; /* #FFF6F3 */
+    --card-foreground: 24 30% 98%; /* Cream white */
     --popover: 176 87% 12%;
-    --popover-foreground: 24 100% 98%; /* #FFF6F3 */
+    --popover-foreground: 24 30% 98%; /* Cream white */
     --muted: 176 87% 15%; /* Muted dark green */
-    --muted-foreground: 24 100% 85%; /* Light cream */
+    --muted-foreground: 24 30% 90%; /* Light cream */
     --accent: 220 100% 50%; /* #0052FF - Blue */
-    --accent-foreground: 24 100% 98%; /* #FFF6F3 */
+    --accent-foreground: 24 30% 98%; /* Cream white */
     
     /* System colors */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 24 100% 98%; /* #FFF6F3 */
+    --destructive-foreground: 24 30% 98%; /* Cream white */
     --border: 176 87% 15%; /* Darker green border */
     --input: 176 87% 15%;
-    --ring: 24 100% 98%; /* #FFF6F3 */
+    --ring: 24 30% 98%; /* Cream white */
 
     /* Chart colors */
-    --chart-1: 24 100% 98%; /* #FFF6F3 - Cream */
+    --chart-1: 24 30% 98%; /* Cream white */
     --chart-2: 78 100% 47%; /* #B3F200 - Lime */
     --chart-3: 220 100% 50%; /* #0052FF - Blue */
     --chart-4: 176 87% 20%; /* Lighter Dark Green */
     --chart-5: 176 87% 15%; /* Even Lighter Dark Green */
 
     /* Sidebar specific */
-    --sidebar-background: 176 87% 12%; /* Slightly lighter dark green */
-    --sidebar-foreground: 24 100% 98%; /* #FFF6F3 */
-    --sidebar-primary: 24 100% 98%; /* #FFF6F3 */
+    --sidebar-background: 176 87% 12%; /* Slightly darker green */
+    --sidebar-foreground: 24 30% 98%; /* Cream white */
+    --sidebar-primary: 24 30% 98%; /* Cream white */
     --sidebar-primary-foreground: 176 87% 9%; /* #022E2C */
     --sidebar-accent: 78 100% 47%; /* #B3F200 */
     --sidebar-accent-foreground: 176 87% 9%; /* #022E2C */
     --sidebar-border: 176 87% 15%;
-    --sidebar-ring: 24 100% 98%; /* #FFF6F3 */
+    --sidebar-ring: 24 30% 98%; /* Cream white */
   }
 
   body {
     @apply font-sans bg-background text-foreground;
   }
 
-  .font-neutro {
-    font-family: var(--font-neutro);
+  .font-hanson {
+    font-family: var(--font-hanson);
   }
 }
 
