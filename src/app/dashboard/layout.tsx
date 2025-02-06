@@ -2,8 +2,8 @@
 
 import { useEffect, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/nav/app-sidebar";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -24,12 +24,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="bg-slate-50">
-        <main className="flex-1 p-8">
-          {children}
+      <div className="flex min-h-screen">
+        <AppSidebar />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="container mx-auto p-6">
+            {children}
+          </div>
         </main>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
