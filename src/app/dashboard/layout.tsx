@@ -23,15 +23,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [router]);
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen">
-        <AppSidebar />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="container mx-auto p-6">
-            {children}
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen bg-background">
+      <SidebarProvider>
+        <AppSidebar>
+          {children}
+        </AppSidebar>
+      </SidebarProvider>
+    </div>
   );
 }

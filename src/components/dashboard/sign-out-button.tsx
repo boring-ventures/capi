@@ -15,7 +15,7 @@ export function SignOutButton() {
   }
 
   return (
-    <Button variant="outline" onClick={handleSignOut}>
+    <Button variant="default" onClick={handleSignOut}>
       <LogOut className="mr-2 h-4 w-4" />
       Cerrar Sesión
     </Button>

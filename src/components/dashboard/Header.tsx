@@ -59,7 +59,7 @@ export function Header() {
   };
 
   return (
-    <header className="border-b">
+    <header className="bg-background">
       <div className="flex h-16 items-center gap-2 px-4">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
