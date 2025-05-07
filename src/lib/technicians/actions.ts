@@ -26,7 +26,7 @@ interface TechnicianData {
   carnetIdentidadReversoUrl?: string;
   facturaLuzUrl?: string;
   certificacionesUrls?: string[];
-  contraseña: string;
+  password: string;
   fechaNacimiento: string;
   created_at: string;
   reviewStatus: string;
@@ -41,7 +41,7 @@ export const createTechnician = async (technicianData: TechnicianData): Promise<
       phone: technicianData.telefono,
       role: "technician",
       status: "active",
-      contraseña: technicianData.contraseña,
+      password: technicianData.password,
       fechaNacimiento: technicianData.fechaNacimiento,
       created_at: technicianData.created_at,
       reviewStatus: technicianData.reviewStatus,

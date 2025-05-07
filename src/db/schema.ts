@@ -20,12 +20,29 @@ export const serviceStatusEnum = pgEnum("service_status", [
   "disputed",
 ]);
 
+export const reviewStatusEnum = pgEnum("review_status", [
+  "pending",
+  "rejected",
+  "approved",
+  "accepted",
+]);
+
+export const userStatusEnum = pgEnum("user_status", [
+  "active",
+  "inactive",
+]);
+
+export const userRoleEnum = pgEnum("user_role", [
+  "client",
+  "technician",
+]);
+
 export const workStatusEnum = pgEnum("work_status", [
   "pending",
-  "on_way", 
+  "on_way",
   "working",
   "payment",
-  "completed"
+  "completed",
 ]);
 
 export const disputeStatusEnum = pgEnum("dispute_status", [
@@ -50,10 +67,14 @@ export const notificationStatusEnum = pgEnum("notification_status", [
   "rejected",
 ]);
 
-export const paymentMethodEnum = pgEnum("payment_method", [
-  "",
-  "cash",
-  "qr"
+export const paymentMethodEnum = pgEnum("payment_method", ["", "cash", "qr"]);
+
+export const systemVariableCategoryEnum = pgEnum("system_variable_category", [
+  "version",
+  "config",
+  "images",
+  "contact",
+  "location",
 ]);
 
 // Tabla de Usuarios
@@ -62,15 +83,13 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }),
-  role: varchar("role", { length: 255 }).notNull(),
-  status: varchar("status", { length: 255 }).notNull(),
+  role: userRoleEnum("role").notNull(),
+  status: userStatusEnum("status").notNull(),
   rating: decimal("rating", { precision: 2, scale: 1 }).default("5.0"),
   fechaNacimiento: timestamp("fechaNacimiento"),
-  contraseña: varchar("contraseña", { length: 255 }).notNull(),
+  password: varchar("password", { length: 255 }).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
-  reviewStatus: varchar("reviewStatus", { length: 255 })
-    .notNull()
-    .default("pending"),
+  reviewStatus: reviewStatusEnum("reviewStatus").notNull().default("pending"),
 });
 
 // Tabla de Ubicaciones
@@ -100,9 +119,9 @@ export const services = pgTable("services", {
   category_id: uuid("category_id")
     .notNull()
     .references(() => categories.id, { onDelete: "cascade" }),
-  subcategory_id: uuid("subcategory_id")
-    .notNull()
-    .references(() => subcategories.id, { onDelete: "cascade" }),
+  subcategory_id: uuid("subcategory_id").references(() => subcategories.id, {
+    onDelete: "cascade",
+  }),
   client_id: uuid("client_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -113,12 +132,12 @@ export const services = pgTable("services", {
     .notNull()
     .references(() => locations.id, { onDelete: "cascade" }),
   request_date: timestamp("request_date").defaultNow().notNull(),
-  preferred_date: timestamp("preferred_date").notNull(),
-  preferred_time: varchar("preferred_time", { length: 5 }).notNull(), // Format: "HH:mm"
+  preferred_date: timestamp("preferred_date"),
+  preferred_time: varchar("preferred_time", { length: 5 }), // Format: "HH:mm"
   acceptance_date: timestamp("acceptance_date"),
   completion_date: timestamp("completion_date"),
   agreed_price: decimal("agreed_price", { precision: 10, scale: 2 }),
-  description: text("description").notNull(),
+  description: text("description"),
   // Campos de cancelación
   reason_cancelled: text("reason_cancelled"),
   cancelled_at: timestamp("cancelled_at"),
@@ -128,6 +147,10 @@ export const services = pgTable("services", {
   rating_comment: text("rating_comment"),
   rating_images: text("rating_images").array(),
   rating_date: timestamp("rating_date"),
+  // Campos de calificación del cliente
+  technician_rated: boolean("technician_rated").default(false),
+  client_rating: decimal("client_rating", { precision: 2, scale: 1 }),
+  client_rating_date: timestamp("client_rating_date", { withTimezone: true }),
   // Campos de disputa
   dispute_reason: text("dispute_reason"),
   dispute_description: text("dispute_description"),
@@ -165,6 +188,7 @@ export const workPhotos = pgTable("work_photos", {
 export const categories = pgTable("categories", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
+  image_url: varchar("image_url", { length: 255 }),
 });
 
 // Tabla de Subcategorías
@@ -210,9 +234,6 @@ export const technicianWorkInfo = pgTable("technician_work_info", {
   nombre_banco: varchar("nombre_banco", { length: 255 }),
   numero_cuenta: varchar("numero_cuenta", { length: 255 }),
   tipo_cuenta: varchar("tipo_cuenta", { length: 255 }),
-  category_id: uuid("category_id")
-    .notNull()
-    .references(() => categories.id),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -280,4 +301,33 @@ export const pushTokens = pgTable("push_tokens", {
   token: text("token").notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabla de Variables del Sistema
+export const systemVariables = pgTable("system_variables", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  category: systemVariableCategoryEnum("category").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  value: text("value").notNull(),
+  description: text("description"),
+  is_public: boolean("is_public").default(true).notNull(),
+  metadata: jsonb("metadata"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabla de Comprobantes de Pago
+export const paymentProofs = pgTable("payment_proofs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  service_id: uuid("service_id")
+    .notNull()
+    .references(() => services.id, { onDelete: "cascade" }),
+  technician_id: uuid("technician_id")
+    .notNull()
+    .references(() => users.id),
+  proof_url: text("proof_url").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  uploaded_at: timestamp("uploaded_at").defaultNow().notNull(),
+  confirmed_at: timestamp("confirmed_at"),
+  metadata: jsonb("metadata"),
 });

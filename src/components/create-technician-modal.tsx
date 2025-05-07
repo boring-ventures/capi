@@ -180,7 +180,7 @@ export function CreateTechnicianModal({
           nombreBanco: formData.nombreBanco,
           numeroCuenta: formData.numeroCuenta,
           tipoCuenta: formData.tipoCuenta,
-          contraseña: generateRandomPassword(),
+          password: generateRandomPassword(),
           fechaNacimiento: formData.fechaNacimiento,
           created_at: new Date().toISOString(),
           reviewStatus: "approved",

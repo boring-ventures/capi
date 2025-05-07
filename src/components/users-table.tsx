@@ -23,24 +23,49 @@ import { UserRating } from "./user-rating";
 import { UserActions } from "./user-actions";
 import { useUsers } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 export function UsersTable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
 
   const { data: users = [], isLoading, error } = useUsers();
+  const router = useRouter();
 
   const filteredUsers = users.filter(
     (user) =>
       (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (roleFilter === "todos" || user.role.toLowerCase() === roleFilter) &&
-      (statusFilter === "todos" || user.status.toLowerCase() === statusFilter)
+      (roleFilter === "todos" || user.role === roleFilter) &&
+      (statusFilter === "todos" || user.status === statusFilter)
   );
+
+  const togglePasswordVisibility = (userId: string) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  const getReviewStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-50 hover:bg-yellow-100 text-yellow-700";
+      case "approved":
+        return "bg-green-50 hover:bg-green-100 text-green-700";
+      case "accepted":
+        return "bg-blue-50 hover:bg-blue-100 text-blue-700";
+      case "rejected":
+        return "bg-red-50 hover:bg-red-100 text-red-700";
+      default:
+        return "bg-gray-50 hover:bg-gray-100 text-gray-700";
+    }
+  };
 
   if (error) {
     return (
@@ -74,8 +99,7 @@ export function UsersTable() {
             <SelectContent>
               <SelectItem value="todos">Todos los roles</SelectItem>
               <SelectItem value="technician">Técnico</SelectItem>
-              <SelectItem value="customer">Cliente</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="client">Cliente</SelectItem>
             </SelectContent>
           </Select>
           <Select
@@ -101,16 +125,17 @@ export function UsersTable() {
             <TableHead>Teléfono</TableHead>
             <TableHead>Rol</TableHead>
             <TableHead>Estado</TableHead>
+            <TableHead>Revisión</TableHead>
             <TableHead>Calificación</TableHead>
+            <TableHead>Contraseña</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            // Skeleton loader
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                {Array.from({ length: 7 }).map((_, cellIndex) => (
+                {Array.from({ length: 9 }).map((_, cellIndex) => (
                   <TableCell key={cellIndex}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
@@ -119,7 +144,7 @@ export function UsersTable() {
             ))
           ) : filteredUsers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <AlertCircle className="h-8 w-8 mb-2" />
                   <p className="text-lg font-medium">No se encontraron usuarios</p>
@@ -135,7 +160,7 @@ export function UsersTable() {
                 <TableCell>
                   <UserAvatar
                     name={user.name}
-                    role={user.role as "client" | "technician"}
+                    role={user.role}
                   />
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
@@ -144,20 +169,40 @@ export function UsersTable() {
                   {user.role === "client" ? "Cliente" : "Técnico"}
                 </TableCell>
                 <TableCell>
-                  <UserStatus
-                    status={
-                      user.status.toLowerCase() as "active" | "inactive"
-                    }
-                  />
+                  <UserStatus status={user.status} />
                 </TableCell>
                 <TableCell>
-                  <UserRating rating={5} />
+                  <Badge 
+                    className={`${getReviewStatusColor(user.reviewStatus)} transition-colors duration-200 cursor-pointer`}
+                    onClick={() => {
+                      if (user.role === 'technician' && ['pending', 'rejected'].includes(user.reviewStatus)) {
+                        router.push(`/dashboard/users/review/${user.id}`);
+                      }
+                    }}
+                  >
+                    {user.reviewStatus === "pending" && "Pendiente"}
+                    {user.reviewStatus === "approved" && "Aprobado"}
+                    {user.reviewStatus === "accepted" && "Aceptado"}
+                    {user.reviewStatus === "rejected" && "Rechazado"}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center">
-                    {showPassword ? user.contraseña : "••••••"}
-                    <button onClick={() => setShowPassword(!showPassword)} className="ml-2">
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <UserRating rating={user.rating || 0} />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center">
+                      {showPassword[user.id] ? user.password : "••••••"}
+                    </div>
+                    <button 
+                      onClick={() => togglePasswordVisibility(user.id)}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      {showPassword[user.id] ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </TableCell>
