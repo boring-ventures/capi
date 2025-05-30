@@ -110,4 +110,32 @@ export const uploadProfilePhoto = async (
     console.error("Error uploading profile photo:", error);
     return null;
   }
+};
+
+export const uploadCategoryLogo = async (
+  file: File,
+  categoryId: string
+): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${categoryId}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("categoryLogos")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from("categoryLogos")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error uploading category logo:", error);
+    return null;
+  }
 }; 

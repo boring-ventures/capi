@@ -5,13 +5,14 @@ import { eq } from "drizzle-orm";
 export type Category = {
     id: string;
     name: string;
+    image_url?: string;
     subcategories: any;
 };
 
-export async function createCategory(name: string): Promise<Category> {
+export async function createCategory(name: string, imageUrl?: string): Promise<Category> {
   const { data, error } = await supabase
     .from("categories")
-    .insert([{ name }])
+    .insert([{ name, image_url: imageUrl }])
     .select()
     .single();
 
@@ -29,10 +30,10 @@ export async function getCategories(): Promise<Category[]> {
   return data as Category[];
 }
 
-export async function updateCategory(id: string, name: string): Promise<Category> {
+export async function updateCategory(id: string, name: string, imageUrl?: string): Promise<Category> {
   const { data, error } = await supabase
     .from("categories")
-    .update({ name })
+    .update({ name, image_url: imageUrl })
     .eq("id", id)
     .select()
     .single();
