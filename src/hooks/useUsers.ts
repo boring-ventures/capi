@@ -7,6 +7,7 @@ import {
   updateUser,
   deleteUser,
 } from "@/lib/users/actions";
+import { getCategories } from "@/lib/categories/actions";
 import { toast } from "sonner";
 
 export const useUsers = () => {
@@ -71,5 +72,12 @@ export const useDeleteUser = () => {
       console.error("Error deleting user:", error);
       toast.error("Error al eliminar el usuario");
     },
+  });
+};
+
+export const useCategories = () => {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories,
   });
 };

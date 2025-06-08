@@ -42,12 +42,51 @@ export const createUser = async (userData: any): Promise<CreateUserResponse> => 
   }
 };
 
-// Get all users
+// Get all users with technician work info and category names
 export const getUsers = async () => {
-  const { data, error } = await supabase.from("users").select("*");
+  // Primero obtener todos los usuarios
+  const { data: users, error: usersError } = await supabase
+    .from("users")
+    .select("*");
 
-  if (error) throw new Error(`Error fetching users: ${error.message}`);
-  return data;
+  if (usersError) throw new Error(`Error fetching users: ${usersError.message}`);
+
+  // Obtener información de trabajo de técnicos
+  const { data: workInfo, error: workError } = await supabase
+    .from("technician_work_info")
+    .select("user_id, area_trabajo");
+
+  if (workError) throw new Error(`Error fetching work info: ${workError.message}`);
+
+  // Obtener todas las categorías
+  const { data: categories, error: categoriesError } = await supabase
+    .from("categories")
+    .select("id, name");
+
+  if (categoriesError) throw new Error(`Error fetching categories: ${categoriesError.message}`);
+
+  // Crear un mapa de categorías por ID
+  const categoryMap = new Map(categories?.map(cat => [cat.id, cat.name]) || []);
+
+  // Combinar la información
+  const usersWithCategories = users?.map(user => {
+    const userWorkInfo = workInfo?.find(info => info.user_id === user.id);
+    let categoryNames: string[] = [];
+
+    if (userWorkInfo && Array.isArray(userWorkInfo.area_trabajo)) {
+      categoryNames = userWorkInfo.area_trabajo
+        .map(categoryId => categoryMap.get(categoryId))
+        .filter(Boolean) as string[];
+    }
+
+    return {
+      ...user,
+      categories: categoryNames,
+      categoryIds: userWorkInfo?.area_trabajo || []
+    };
+  });
+
+  return usersWithCategories;
 };
 
 // Get a user by ID

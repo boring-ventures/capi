@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -21,29 +21,91 @@ import { UserAvatar } from "./user-avatar";
 import { UserStatus } from "./user-status";
 import { UserRating } from "./user-rating";
 import { UserActions } from "./user-actions";
-import { useUsers } from "@/hooks/useUsers";
+import { useUsers, useCategories } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 
-export function UsersTable() {
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: "technician" | "client";
+  status: "active" | "inactive";
+  reviewStatus: "pending" | "rejected" | "approved" | "accepted";
+  rating?: number;
+  password: string;
+  categories?: string[];
+  categoryIds?: string[];
+  created_at: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface UsersTableProps {
+  onDataChange?: (users: User[], filters: any) => void;
+}
+
+export function UsersTable({ onDataChange }: UsersTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [categoryFilter, setCategoryFilter] = useState<string>("todas");
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
 
   const { data: users = [], isLoading, error } = useUsers();
+  const { data: categories = [] } = useCategories();
   const router = useRouter();
+  const lastDataRef = useRef<{users: any[], filters: any}>();
 
   const filteredUsers = users.filter(
-    (user) =>
-      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (roleFilter === "todos" || user.role === roleFilter) &&
-      (statusFilter === "todos" || user.status === statusFilter)
+    (user: User) => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRole = roleFilter === "todos" || user.role === roleFilter;
+      const matchesStatus = statusFilter === "todos" || user.status === statusFilter;
+      
+      let matchesCategory = true;
+      if (categoryFilter !== "todas" && roleFilter === "technician") {
+        const selectedCategory = categories.find(cat => cat.name === categoryFilter);
+        if (selectedCategory && user.categoryIds) {
+          matchesCategory = user.categoryIds.includes(selectedCategory.id);
+        }
+      }
+
+      return matchesSearch && matchesRole && matchesStatus && matchesCategory;
+    }
   );
+
+  // Notificar cambios al componente padre
+  useEffect(() => {
+    if (onDataChange) {
+      const filters = {
+        searchTerm,
+        roleFilter,
+        statusFilter,
+        categoryFilter
+      };
+      
+      // Evitar llamadas innecesarias comparando con la última data enviada
+      const currentData = { users: filteredUsers, filters };
+      const lastData = lastDataRef.current;
+      
+      if (!lastData || 
+          JSON.stringify(currentData.filters) !== JSON.stringify(lastData.filters) ||
+          currentData.users.length !== lastData.users.length) {
+        onDataChange(filteredUsers, filters);
+        lastDataRef.current = currentData;
+      }
+    }
+  }, [filteredUsers, searchTerm, roleFilter, statusFilter, categoryFilter]);
 
   const togglePasswordVisibility = (userId: string) => {
     setShowPassword(prev => ({
@@ -91,7 +153,12 @@ export function UsersTable() {
           />
           <Select
             value={roleFilter}
-            onValueChange={(value) => setRoleFilter(value)}
+            onValueChange={(value) => {
+              setRoleFilter(value);
+              if (value !== "technician") {
+                setCategoryFilter("todas");
+              }
+            }}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por rol" />
@@ -115,6 +182,24 @@ export function UsersTable() {
               <SelectItem value="inactive">Inactivo</SelectItem>
             </SelectContent>
           </Select>
+          {roleFilter === "technician" && (
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) => setCategoryFilter(value)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Filtrar por categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas las categorías</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.name}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
       <Table>
@@ -127,6 +212,7 @@ export function UsersTable() {
             <TableHead>Estado</TableHead>
             <TableHead>Revisión</TableHead>
             <TableHead>Calificación</TableHead>
+            <TableHead>Categorías</TableHead>
             <TableHead>Contraseña</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
@@ -135,7 +221,7 @@ export function UsersTable() {
           {isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                {Array.from({ length: 9 }).map((_, cellIndex) => (
+                {Array.from({ length: 10 }).map((_, cellIndex) => (
                   <TableCell key={cellIndex}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
@@ -144,7 +230,7 @@ export function UsersTable() {
             ))
           ) : filteredUsers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="h-24 text-center">
+              <TableCell colSpan={10} className="h-24 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <AlertCircle className="h-8 w-8 mb-2" />
                   <p className="text-lg font-medium">No se encontraron usuarios</p>
@@ -155,7 +241,7 @@ export function UsersTable() {
               </TableCell>
             </TableRow>
           ) : (
-            filteredUsers.map((user) => (
+            filteredUsers.map((user: User) => (
               <TableRow key={user.id}>
                 <TableCell>
                   <UserAvatar
@@ -188,6 +274,21 @@ export function UsersTable() {
                 </TableCell>
                 <TableCell>
                   <UserRating rating={user.rating || 0} />
+                </TableCell>
+                <TableCell>
+                  <div className="max-w-[200px]">
+                    {user.categories && user.categories.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {user.categories.map((category: string, index: number) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {category}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">N/A</span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
