@@ -1,11 +1,10 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { PlusCircle } from 'lucide-react'
-import { CreateTechnicianModal } from "./create-technician-modal"
-import UserTypeDialog from "./user-type-dialog"
-import { ExportExcelButton } from "./export-excel-button"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import { CreateTechnicianModal } from "./create-technician-modal";
+import UserTypeDialog from "./user-type-dialog";
 
 interface UserManagementHeaderProps {
   users?: any[];
@@ -17,21 +16,24 @@ interface UserManagementHeaderProps {
   };
 }
 
-export function UserManagementHeader({ users = [], filters }: UserManagementHeaderProps) {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false)
+export function UserManagementHeader({
+  users = [],
+  filters,
+}: UserManagementHeaderProps) {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false);
 
   const handleUserTypeSelected = (type: string) => {
-    if (type === 'Tecnico') {
-      setIsCreateModalOpen(true)
+    if (type === "Tecnico") {
+      setIsCreateModalOpen(true);
     }
-  }
+  };
 
   const defaultFilters = {
-    searchTerm: '',
-    roleFilter: 'todos',
-    statusFilter: 'todos',
-    categoryFilter: 'todas'
+    searchTerm: "",
+    roleFilter: "todos",
+    statusFilter: "todos",
+    categoryFilter: "todas",
   };
 
   return (
@@ -39,27 +41,22 @@ export function UserManagementHeader({ users = [], filters }: UserManagementHead
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
         <div className="flex gap-2">
-          <ExportExcelButton 
-            users={users}
-            filters={filters || defaultFilters}
-          />
           <Button onClick={() => setIsTypeDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" /> Nuevo Usuario
           </Button>
         </div>
       </div>
 
-      <UserTypeDialog 
+      <UserTypeDialog
         open={isTypeDialogOpen}
         onOpenChange={setIsTypeDialogOpen}
         onSelect={handleUserTypeSelected}
       />
 
-      <CreateTechnicianModal 
+      <CreateTechnicianModal
         open={isCreateModalOpen}
         onOpenChange={setIsCreateModalOpen}
       />
     </>
-  )
+  );
 }
-

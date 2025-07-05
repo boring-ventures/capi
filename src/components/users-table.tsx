@@ -23,25 +23,11 @@ import { UserRating } from "./user-rating";
 import { UserActions } from "./user-actions";
 import { useUsers, useCategories } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: "technician" | "client";
-  status: "active" | "inactive";
-  reviewStatus: "pending" | "rejected" | "approved" | "accepted";
-  rating?: number;
-  password: string;
-  categories?: string[];
-  categoryIds?: string[];
-  created_at: string;
-}
+import { User } from "@/types/user";
 
 interface Category {
   id: string;
@@ -57,7 +43,6 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
   const [roleFilter, setRoleFilter] = useState<string>("todos");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [categoryFilter, setCategoryFilter] = useState<string>("todas");
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
 
   const { data: users = [], isLoading, error } = useUsers();
   const { data: categories = [] } = useCategories();
@@ -106,13 +91,6 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
       }
     }
   }, [filteredUsers, searchTerm, roleFilter, statusFilter, categoryFilter]);
-
-  const togglePasswordVisibility = (userId: string) => {
-    setShowPassword(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
-  };
 
   const getReviewStatusColor = (status: string) => {
     switch (status) {
@@ -213,7 +191,6 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
             <TableHead>Revisión</TableHead>
             <TableHead>Calificación</TableHead>
             <TableHead>Categorías</TableHead>
-            <TableHead>Contraseña</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -221,7 +198,7 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
           {isLoading ? (
             Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
-                {Array.from({ length: 10 }).map((_, cellIndex) => (
+                {Array.from({ length: 9 }).map((_, cellIndex) => (
                   <TableCell key={cellIndex}>
                     <Skeleton className="h-8 w-full" />
                   </TableCell>
@@ -230,7 +207,7 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
             ))
           ) : filteredUsers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="h-24 text-center">
+              <TableCell colSpan={9} className="h-24 text-center">
                 <div className="flex flex-col items-center justify-center text-muted-foreground">
                   <AlertCircle className="h-8 w-8 mb-2" />
                   <p className="text-lg font-medium">No se encontraron usuarios</p>
@@ -259,9 +236,9 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
                 </TableCell>
                 <TableCell>
                   <Badge 
-                    className={`${getReviewStatusColor(user.reviewStatus)} transition-colors duration-200 cursor-pointer`}
+                    className={`${getReviewStatusColor(user.reviewStatus || '')} transition-colors duration-200 cursor-pointer`}
                     onClick={() => {
-                      if (user.role === 'technician' && ['pending', 'rejected'].includes(user.reviewStatus)) {
+                      if (user.role === 'technician' && user.reviewStatus && ['pending', 'rejected'].includes(user.reviewStatus)) {
                         router.push(`/dashboard/users/review/${user.id}`);
                       }
                     }}
@@ -291,24 +268,7 @@ export function UsersTable({ onDataChange }: UsersTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center">
-                      {showPassword[user.id] ? user.password : "••••••"}
-                    </div>
-                    <button 
-                      onClick={() => togglePasswordVisibility(user.id)}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      {showPassword[user.id] ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <UserActions userId={user.id} />
+                  <UserActions user={user} />
                 </TableCell>
               </TableRow>
             ))
