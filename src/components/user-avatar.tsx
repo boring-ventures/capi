@@ -1,27 +1,26 @@
-import { User, UserCog } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+"use client";
 
-interface UserAvatarProps {
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
+import { type User as UserType } from "@/types/user";
+
+export interface UserAvatarProps {
   name: string;
-  role: "client" | "technician";
+  role: 'client' | 'technician';
+  photoUrl?: string;
+  className?: string;
 }
 
-export function UserAvatar({ name, role }: UserAvatarProps) {
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-  const Icon = role === "client" ? User : UserCog;
-
+export function UserAvatar({ name, role, photoUrl, className }: UserAvatarProps) {
   return (
-    <div className="flex items-center">
-      <Avatar className="h-8 w-8 mr-2">
+    <Avatar className={className}>
+      {photoUrl ? (
+        <AvatarImage src={photoUrl} alt={name} />
+      ) : (
         <AvatarFallback>
-          <Icon className="h-4 w-4" />
+          {name.split(' ').map(n => n[0]).join('').toUpperCase()}
         </AvatarFallback>
-      </Avatar>
-      <span>{name}</span>
-    </div>
+      )}
+    </Avatar>
   );
 }

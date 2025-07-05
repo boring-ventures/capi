@@ -8,6 +8,20 @@
       "when": 1744847632398,
       "tag": "0000_harsh_ink",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751570219760,
+      "tag": "0001_discount_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751574687865,
+      "tag": "0002_add_discount_code_ref_to_services",
+      "breakpoints": true
     }
   ]
 }

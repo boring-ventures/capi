@@ -45,6 +45,7 @@ export function ReviewDetails() {
   const [technicianInfo, setTechnicianInfo] = useState<TechnicianInfo | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingTech, setIsLoadingTech] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const updateUser = useUpdateUser();
 
   useEffect(() => {
@@ -87,16 +88,24 @@ export function ReviewDetails() {
     return category ? category.name : 'Categoría no encontrada';
   };
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: 'approved' | 'rejected') => {
+    if (isUpdating) return;
+    setIsUpdating(true);
     try {
       await updateUser.mutateAsync({
         id: userId,
-        data: { reviewStatus: newStatus }
+        data: { 
+          reviewStatus: newStatus,
+          status: newStatus === 'approved' ? 'active' : 'inactive'
+        }
       });
-      toast.success(`Estado actualizado a ${newStatus}`);
+      toast.success(`Técnico ${newStatus === 'approved' ? 'aprobado' : 'rechazado'} exitosamente`);
       router.push("/dashboard/users");
     } catch (error) {
-      toast.error("Error al actualizar el estado");
+      console.error("Error al actualizar el estado:", error);
+      toast.error("Error al actualizar el estado del técnico");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -136,7 +145,11 @@ export function ReviewDetails() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
-              <UserAvatar name={user.name} role={user.role} />
+              <UserAvatar 
+                name={user.name} 
+                role={user.role} 
+                photoUrl={user.photo_url}
+              />
               <div>
                 <h3 className="font-medium">{user.name}</h3>
                 <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -295,25 +308,28 @@ export function ReviewDetails() {
         </Card>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t p-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-end space-x-4">
           <Button
             variant="outline"
             onClick={() => router.push("/dashboard/users")}
+            disabled={isUpdating}
           >
             Volver atrás
           </Button>
           <Button
             variant="destructive"
             onClick={() => handleStatusUpdate("rejected")}
+            disabled={isUpdating}
           >
-            Rechazar
+            {isUpdating ? "Procesando..." : "Rechazar"}
           </Button>
           <Button
             variant="default"
             onClick={() => handleStatusUpdate("approved")}
+            disabled={isUpdating}
           >
-            Aprobar
+            {isUpdating ? "Procesando..." : "Aprobar"}
           </Button>
         </div>
       </div>

@@ -77,6 +77,12 @@ export const systemVariableCategoryEnum = pgEnum("system_variable_category", [
   "location",
 ]);
 
+// Enum para tipo de descuento (porcentaje o monto fijo)
+export const discountTypeEnum = pgEnum("discount_type", [
+  "percentage",
+  "fixed",
+]);
+
 // Tabla de Usuarios
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -88,6 +94,7 @@ export const users = pgTable("users", {
   rating: decimal("rating", { precision: 2, scale: 1 }).default("5.0"),
   fechaNacimiento: timestamp("fechaNacimiento"),
   password: varchar("password", { length: 255 }).notNull(),
+  first_discount_claimed: boolean("first_discount_claimed").default(false).notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
   reviewStatus: reviewStatusEnum("reviewStatus").notNull().default("pending"),
 });
@@ -137,6 +144,7 @@ export const services = pgTable("services", {
   acceptance_date: timestamp("acceptance_date"),
   completion_date: timestamp("completion_date"),
   agreed_price: decimal("agreed_price", { precision: 10, scale: 2 }),
+  discount_code_id: uuid("discount_code_id").references(() => discountCodes.id, { onDelete: "set null" }),
   description: text("description"),
   // Campos de cancelación
   reason_cancelled: text("reason_cancelled"),
@@ -330,4 +338,40 @@ export const paymentProofs = pgTable("payment_proofs", {
   uploaded_at: timestamp("uploaded_at").defaultNow().notNull(),
   confirmed_at: timestamp("confirmed_at"),
   metadata: jsonb("metadata"),
+});
+
+// Tabla de Códigos de Descuento
+export const discountCodes = pgTable("discount_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  discount_type: discountTypeEnum("discount_type").notNull().default("percentage"),
+  discount_value: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  trigger_reason: varchar("trigger_reason", { length: 100 }).notNull(),
+  expires_at: timestamp("expires_at").notNull(),
+  max_uses: integer("max_uses").notNull().default(1),
+  current_uses: integer("current_uses").notNull().default(0),
+  is_used: boolean("is_used").default(false).notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Tabla de registro de uso de códigos de descuento
+export const discountCodeUsage = pgTable("discount_code_usage", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  discount_code_id: uuid("discount_code_id")
+    .notNull()
+    .references(() => discountCodes.id, { onDelete: "cascade" }),
+  service_request_id: uuid("service_request_id")
+    .notNull()
+    .references(() => services.id, { onDelete: "cascade" }),
+  user_id: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  original_amount: decimal("original_amount", { precision: 10, scale: 2 }).notNull(),
+  discount_amount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull(),
+  final_amount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
+  applied_at: timestamp("applied_at").defaultNow().notNull(),
 });
