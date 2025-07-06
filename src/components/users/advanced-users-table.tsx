@@ -19,7 +19,7 @@ import { UserPagination } from "./user-pagination";
 import { useUsers, useCategories } from "@/hooks/useUsers";
 import { useAdvancedUserFilters } from "@/hooks/useAdvancedUserFilters";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Copy, Check } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,13 @@ import { useRouter } from "next/navigation";
 import { ColumnManager } from "./column-manager";
 import { ExportExcelButton } from "./export-excel-button";
 import { type User, type Column } from "@/types/user";
+import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AdvancedUsersTableProps {
   onDataChange?: (users: User[], filters: any, stats: any) => void;
@@ -49,6 +56,7 @@ const DEFAULT_COLUMNS: Column[] = [
 
 export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+  const [copiedField, setCopiedField] = useState<{id: string, field: string} | null>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(
     DEFAULT_COLUMNS.map(col => col.id)
   );
@@ -121,6 +129,18 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
 
   const handleColumnChange = (columns: string[]) => {
     setVisibleColumns(columns);
+  };
+
+  // Function to copy text and show feedback
+  const copyToClipboard = async (text: string, userId: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField({ id: userId, field });
+      toast.success(`${field === 'both' ? 'Credenciales copiadas' : field === 'email' ? 'Correo copiado' : 'Contraseña copiada'}`);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      toast.error("Error al copiar al portapapeles");
+    }
   };
 
   if (error) {
@@ -253,7 +273,28 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
                     <TableCell className="font-medium">{user.name}</TableCell>
                   )}
                   {visibleColumns.includes("email") && (
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className="cursor-pointer hover:bg-muted px-2 py-1 rounded flex items-center gap-2"
+                              onClick={() => copyToClipboard(user.email, user.id, 'email')}
+                            >
+                              {user.email}
+                              {copiedField?.id === user.id && copiedField?.field === 'email' ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Click para copiar</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                   )}
                   {visibleColumns.includes("phone") && (
                     <TableCell>{user.phone || "N/A"}</TableCell>
@@ -261,9 +302,30 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
                   {visibleColumns.includes("password") && (
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono">
-                          {showPassword[user.id] ? user.password : '••••••••'}
-                        </span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div 
+                                className="cursor-pointer hover:bg-muted px-2 py-1 rounded flex items-center gap-2 font-mono"
+                                onClick={() => showPassword[user.id] && copyToClipboard(user.password, user.id, 'password')}
+                              >
+                                {showPassword[user.id] ? (
+                                  <>
+                                    {user.password}
+                                    {copiedField?.id === user.id && copiedField?.field === 'password' ? (
+                                      <Check className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                                    )}
+                                  </>
+                                ) : '••••••••'}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{showPassword[user.id] ? 'Click para copiar' : 'Mostrar contraseña'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -339,7 +401,29 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
                   )}
                   {visibleColumns.includes("actions") && (
                     <TableCell className="text-right">
-                      <UserActions user={user} />
+                      <div className="flex items-center gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(`Email: ${user.email}\nContraseña: ${user.password}`, user.id, 'both')}
+                              >
+                                {copiedField?.id === user.id && copiedField?.field === 'both' ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Copiar credenciales</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <UserActions user={user} />
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
