@@ -37,6 +37,7 @@ const DEFAULT_COLUMNS: Column[] = [
   { id: "name", label: "Nombre", required: true },
   { id: "email", label: "Email" },
   { id: "phone", label: "Teléfono" },
+  { id: "password", label: "Contraseña" },
   { id: "role", label: "Rol" },
   { id: "status", label: "Estado" },
   { id: "reviewStatus", label: "Estado de Revisión" },
@@ -190,6 +191,9 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
               {visibleColumns.includes("phone") && (
                 <TableHead>Teléfono</TableHead>
               )}
+              {visibleColumns.includes("password") && (
+                <TableHead>Contraseña</TableHead>
+              )}
               {visibleColumns.includes("role") && (
                 <TableHead>Rol</TableHead>
               )}
@@ -253,6 +257,25 @@ export function AdvancedUsersTable({ onDataChange }: AdvancedUsersTableProps) {
                   )}
                   {visibleColumns.includes("phone") && (
                     <TableCell>{user.phone || "N/A"}</TableCell>
+                  )}
+                  {visibleColumns.includes("password") && (
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono">
+                          {showPassword[user.id] ? user.password : '••••••••'}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowPassword(prev => ({
+                            ...prev,
+                            [user.id]: !prev[user.id]
+                          }))}
+                        >
+                          {showPassword[user.id] ? 'Ocultar' : 'Mostrar'}
+                        </Button>
+                      </div>
+                    </TableCell>
                   )}
                   {visibleColumns.includes("role") && (
                     <TableCell>

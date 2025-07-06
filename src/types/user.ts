@@ -7,6 +7,7 @@ export interface User {
   status: "active" | "inactive";
   reviewStatus?: "pending" | "rejected" | "approved" | "accepted";
   rating?: number;
+  password: string;
   categoryIds?: string[];
   categories?: string[];
   created_at: string;

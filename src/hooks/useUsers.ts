@@ -19,6 +19,7 @@ export function useUsers() {
           status,
           reviewStatus,
           rating,
+          password,
           created_at,
           technician_work_info (
             area_trabajo
@@ -61,6 +62,7 @@ export function useUser(userId: string) {
           status,
           reviewStatus,
           rating,
+          password,
           created_at,
           technician_work_info (
             area_trabajo
