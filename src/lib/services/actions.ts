@@ -12,6 +12,7 @@ export interface Service {
   location_id: string;
   request_date: string;
   acceptance_date?: string;
+  completion_date?: string;
   agreed_price?: number;
   description: string;
   created_at: string;
