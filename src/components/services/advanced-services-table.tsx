@@ -28,10 +28,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { type ServiceWithDetails } from "@/lib/services/actions";
 import { serviceStatusMap } from "@/lib/services/utils";
+import { EditServiceModal } from "@/components/edit-service-modal";
+import { ServiceLocationModal } from "@/components/service-location-modal";
+import { ServiceDetailsModal } from "@/components/service-details-modal";
 
 export function AdvancedServicesTable() {
   const [selectedService, setSelectedService] = useState<ServiceWithDetails | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
   const { data: services = [], isLoading, error } = useServices();
 
@@ -103,6 +108,21 @@ export function AdvancedServicesTable() {
   const handleViewDetails = (service: ServiceWithDetails) => {
     setSelectedService(service);
     setIsDetailsModalOpen(true);
+  };
+
+  const handleEditService = (service: ServiceWithDetails) => {
+    setSelectedService(service);
+    setIsEditModalOpen(true);
+  };
+
+  const handleViewLocation = (service: ServiceWithDetails) => {
+    setSelectedService(service);
+    setIsLocationModalOpen(true);
+  };
+
+  const handleServiceUpdated = () => {
+    // Refrescar la lista de servicios cuando se actualice uno
+    // El useServices hook ya maneja la actualización automática
   };
 
   const getStatusVariant = (status: string) => {
@@ -277,11 +297,11 @@ export function AdvancedServicesTable() {
                             <Eye className="h-4 w-4 mr-2" />
                             Ver detalles
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditService(service)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewLocation(service)}>
                             <MapPin className="h-4 w-4 mr-2" />
                             Ver ubicación
                           </DropdownMenuItem>
@@ -305,6 +325,30 @@ export function AdvancedServicesTable() {
         onPageChange={handlePageChange}
         onItemsPerPageChange={handleItemsPerPageChange}
       />
+
+      {/* Modal de Edición de Servicio */}
+      <EditServiceModal
+        service={selectedService}
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        onServiceUpdated={handleServiceUpdated}
+      />
+
+      {/* Modal de Ubicación del Servicio */}
+      <ServiceLocationModal
+        service={selectedService}
+        open={isLocationModalOpen}
+        onOpenChange={setIsLocationModalOpen}
+      />
+
+      {/* Modal de Detalles del Servicio */}
+      {selectedService && (
+        <ServiceDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => setIsDetailsModalOpen(false)}
+          service={selectedService}
+        />
+      )}
     </div>
   );
 } 

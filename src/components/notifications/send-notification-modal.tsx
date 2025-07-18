@@ -39,11 +39,13 @@ import {
   Settings, 
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Search
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   useSendManualNotification, 
+  useSendManualNotificationToClient,
   useSendBulkManualNotifications,
   useTestPushNotificationConnection 
 } from "@/hooks/useNotifications";
@@ -51,19 +53,21 @@ import { useUsers, useCategories } from "@/hooks/useUsers";
 
 // Esquemas de validación
 const individualNotificationSchema = z.object({
-  technician_id: z.string().min(1, "Selecciona un técnico"),
+  user_type: z.enum(["technician", "client"]),
+  user_id: z.string().min(1, "Selecciona un usuario"),
   service_id: z.string().optional(),
   title: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
   body: z.string().min(1, "El mensaje es requerido").max(500, "Máximo 500 caracteres"),
 });
 
 const bulkNotificationSchema = z.object({
-  target_type: z.enum(["all_technicians", "technicians_by_category", "specific_technicians"]),
+  target_type: z.enum(["all_technicians", "technicians_by_category", "specific_technicians", "all_clients", "specific_clients"]),
   target_ids: z.array(z.string()).optional(),
   title: z.string().min(1, "El título es requerido").max(100, "Máximo 100 caracteres"),
   body: z.string().min(1, "El mensaje es requerido").max(500, "Máximo 500 caracteres"),
 });
 
+type IndividualNotificationFormData = z.infer<typeof individualNotificationSchema>;
 type BulkNotificationFormData = z.infer<typeof bulkNotificationSchema>;
 
 interface SendNotificationModalProps {
@@ -74,21 +78,38 @@ interface SendNotificationModalProps {
 export function SendNotificationModal({ open, onOpenChange }: SendNotificationModalProps) {
   const [activeTab, setActiveTab] = useState("individual");
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
+  const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [technicianSearch, setTechnicianSearch] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
 
   const sendManualNotification = useSendManualNotification();
+  const sendManualNotificationToClient = useSendManualNotificationToClient();
   const sendBulkManualNotifications = useSendBulkManualNotifications();
   const { data: pushConnectionWorking, isLoading: testingConnection } = useTestPushNotificationConnection();
   const { data: users = [] } = useUsers();
   const { data: categories = [] } = useCategories();
 
-  // Filtrar solo técnicos activos
+  // Filtrar técnicos y clientes activos
   const technicians = users.filter(user => user.role === "technician" && user.status === "active");
+  const clients = users.filter(user => user.role === "client" && user.status === "active");
 
-  const individualForm = useForm({
+  // Filtrar técnicos y clientes según búsqueda
+  const filteredTechnicians = technicians.filter(tech => 
+    tech.name.toLowerCase().includes(technicianSearch.toLowerCase()) ||
+    tech.email.toLowerCase().includes(technicianSearch.toLowerCase())
+  );
+
+  const filteredClients = clients.filter(client => 
+    client.name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.email.toLowerCase().includes(clientSearch.toLowerCase())
+  );
+
+  const individualForm = useForm<IndividualNotificationFormData>({
     resolver: zodResolver(individualNotificationSchema),
     defaultValues: {
-      technician_id: "",
+      user_type: "technician",
+      user_id: "",
       service_id: "",
       title: "",
       body: "",
@@ -98,7 +119,7 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
   const bulkForm = useForm<BulkNotificationFormData>({
     resolver: zodResolver(bulkNotificationSchema),
     defaultValues: {
-      target_type: "all_technicians" as BulkNotificationFormData["target_type"],
+      target_type: "all_technicians",
       target_ids: [],
       title: "",
       body: "",
@@ -109,19 +130,32 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
     individualForm.reset();
     bulkForm.reset();
     setSelectedTechnicians([]);
+    setSelectedClients([]);
     setSelectedCategories([]);
+    setTechnicianSearch("");
+    setClientSearch("");
     onOpenChange(false);
   };
 
-  const onSubmitIndividual = async (data: z.infer<typeof individualNotificationSchema>) => {
+  const onSubmitIndividual = async (data: IndividualNotificationFormData) => {
     try {
-      await sendManualNotification.mutateAsync({
-        technicianId: data.technician_id,
-        title: data.title,
-        body: data.body,
-        serviceId: data.service_id || undefined,
-        data: { type: 'manual', source: 'dashboard' }
-      });
+      if (data.user_type === "technician") {
+        await sendManualNotification.mutateAsync({
+          technicianId: data.user_id,
+          title: data.title,
+          body: data.body,
+          serviceId: data.service_id || undefined,
+          data: { type: 'manual', source: 'dashboard' }
+        });
+      } else {
+        await sendManualNotificationToClient.mutateAsync({
+          clientId: data.user_id,
+          title: data.title,
+          body: data.body,
+          serviceId: data.service_id || undefined,
+          data: { type: 'manual', source: 'dashboard' }
+        });
+      }
       handleClose();
     } catch (error) {
       console.error("Error sending notification:", error);
@@ -130,25 +164,31 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
 
   const onSubmitBulk = async (data: BulkNotificationFormData) => {
     try {
-      let technicianIds: string[] = [];
+      let userIds: string[] = [];
 
       switch (data.target_type) {
         case "all_technicians":
-          technicianIds = technicians.map(t => t.id);
+          userIds = technicians.map(t => t.id);
           break;
         case "technicians_by_category":
-          technicianIds = technicians.filter(tech => 
+          userIds = technicians.filter(tech => 
             Array.isArray(tech.categoryIds) && 
             tech.categoryIds.some(catId => selectedCategories.includes(catId))
           ).map(t => t.id);
           break;
         case "specific_technicians":
-          technicianIds = selectedTechnicians;
+          userIds = selectedTechnicians;
+          break;
+        case "all_clients":
+          userIds = clients.map(c => c.id);
+          break;
+        case "specific_clients":
+          userIds = selectedClients;
           break;
       }
 
       await sendBulkManualNotifications.mutateAsync({
-        technicianIds,
+        userIds,
         title: data.title,
         body: data.body,
         data: { type: 'bulk_manual', source: 'dashboard' }
@@ -167,6 +207,14 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
     );
   };
 
+  const toggleClient = (clientId: string) => {
+    setSelectedClients(prev => 
+      prev.includes(clientId)
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev => 
       prev.includes(categoryId)
@@ -176,22 +224,35 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
   };
 
   const getTargetCount = () => {
-    const targetType = bulkForm.watch("target_type") as BulkNotificationFormData["target_type"];
+    const targetType = bulkForm.watch("target_type");
     switch (targetType) {
       case "all_technicians":
         return technicians.length;
       case "technicians_by_category":
-        // Contar técnicos en las categorías seleccionadas
         return technicians.filter(tech => 
           Array.isArray(tech.categoryIds) && 
           tech.categoryIds.some(catId => selectedCategories.includes(catId))
         ).length;
       case "specific_technicians":
         return selectedTechnicians.length;
+      case "all_clients":
+        return clients.length;
+      case "specific_clients":
+        return selectedClients.length;
       default:
         return 0;
     }
   };
+
+  const userTypeOptions = [
+    { value: "technician", label: "Técnico" },
+    { value: "client", label: "Cliente" },
+  ];
+
+  const currentUserType = individualForm.watch("user_type");
+  const currentUsers = currentUserType === "client" ? filteredClients : filteredTechnicians;
+  const currentSearch = currentUserType === "client" ? clientSearch : technicianSearch;
+  const setCurrentSearch = currentUserType === "client" ? setClientSearch : setTechnicianSearch;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,12 +273,12 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
             ) : pushConnectionWorking ? (
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle className="h-4 w-4" />
-                Push notifications activas
+                Push notifications activas ✅
               </div>
             ) : (
               <div className="flex items-center gap-2 text-orange-600">
                 <AlertCircle className="h-4 w-4" />
-                Push notifications no disponibles - Solo notificación en app
+                Push notifications no disponibles - Modo fallback activo
               </div>
             )}
           </div>
@@ -239,25 +300,73 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
           <TabsContent value="individual" className="space-y-4 mt-4">
             <Form {...individualForm}>
               <form onSubmit={individualForm.handleSubmit(onSubmitIndividual)} className="space-y-4">
-                {/* Selección de técnico */}
+                {/* Tipo de usuario */}
                 <FormField
                   control={individualForm.control}
-                  name="technician_id"
+                  name="user_type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Técnico Destinatario</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormLabel>Tipo de Destinatario</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un técnico" />
+                            <SelectValue placeholder="Selecciona el tipo" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {technicians.map((technician) => (
-                            <SelectItem key={technician.id} value={technician.id}>
+                          {userTypeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Buscador */}
+                <div className="space-y-2">
+                  <FormLabel>
+                    Buscar {currentUserType === "client" ? "Clientes" : "Técnicos"}
+                  </FormLabel>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder={`Buscar ${currentUserType === "client" ? "clientes" : "técnicos"}...`}
+                      value={currentSearch}
+                      onChange={(e) => setCurrentSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Selección de usuario específico */}
+                <FormField
+                  control={individualForm.control}
+                  name="user_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {currentUserType === "client" ? "Cliente Destinatario" : "Técnico Destinatario"}
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={`Selecciona un ${currentUserType === "client" ? "cliente" : "técnico"}`} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-60">
+                          {currentUsers.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
                               <div className="flex items-center gap-2">
-                                <span>{technician.name}</span>
-                                <Badge variant="outline">⭐ {technician.rating}</Badge>
+                                <span>{user.name}</span>
+                                {currentUserType === "technician" ? (
+                                  <Badge variant="outline">⭐ {user.rating}</Badge>
+                                ) : (
+                                  <span className="text-xs text-gray-500">({user.email})</span>
+                                )}
                               </div>
                             </SelectItem>
                           ))}
@@ -331,15 +440,15 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={sendManualNotification.isPending}
+                    disabled={sendManualNotification.isPending || sendManualNotificationToClient.isPending}
                     className="flex items-center gap-2"
                   >
-                    {sendManualNotification.isPending ? (
+                    {(sendManualNotification.isPending || sendManualNotificationToClient.isPending) ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
-                    Enviar Notificación + Push
+                    {pushConnectionWorking ? "Enviar + Push 🚀" : "Enviar (Fallback) 📱"}
                   </Button>
                 </div>
               </form>
@@ -357,7 +466,7 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Destinatarios</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -373,6 +482,12 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                           <SelectItem value="specific_technicians">
                             Técnicos específicos
                           </SelectItem>
+                          <SelectItem value="all_clients">
+                            Todos los clientes activos ({clients.length})
+                          </SelectItem>
+                          <SelectItem value="specific_clients">
+                            Clientes específicos
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -381,7 +496,7 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                 />
 
                 {/* Selección de categorías */}
-                {(bulkForm.watch("target_type") as BulkNotificationFormData["target_type"]) === "technicians_by_category" && (
+                {bulkForm.watch("target_type") === "technicians_by_category" && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-sm">Seleccionar Categorías</CardTitle>
@@ -404,13 +519,23 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                 )}
 
                 {/* Selección de técnicos específicos */}
-                {(bulkForm.watch("target_type") as BulkNotificationFormData["target_type"]) === "specific_technicians" && (
+                {bulkForm.watch("target_type") === "specific_technicians" && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-sm">Seleccionar Técnicos</CardTitle>
+                      {/* Buscador para técnicos */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar técnicos..."
+                          value={technicianSearch}
+                          onChange={(e) => setTechnicianSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-2 max-h-40 overflow-y-auto">
-                      {technicians.map((technician) => (
+                      {filteredTechnicians.map((technician) => (
                         <div key={technician.id} className="flex items-center space-x-2">
                           <Checkbox
                             id={technician.id}
@@ -429,11 +554,47 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                   </Card>
                 )}
 
+                {/* Selección de clientes específicos */}
+                {bulkForm.watch("target_type") === "specific_clients" && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Seleccionar Clientes</CardTitle>
+                      {/* Buscador para clientes */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar clientes..."
+                          value={clientSearch}
+                          onChange={(e) => setClientSearch(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 max-h-40 overflow-y-auto">
+                      {filteredClients.map((client) => (
+                        <div key={client.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={client.id}
+                            checked={selectedClients.includes(client.id)}
+                            onCheckedChange={() => toggleClient(client.id)}
+                          />
+                          <label htmlFor={client.id} className="text-sm font-medium flex-1">
+                            {client.name}
+                          </label>
+                          <span className="text-xs text-gray-500">
+                            {client.email}
+                          </span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Información de destinatarios */}
                 <Alert>
                   <CheckCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Se enviará la notificación a {getTargetCount()} técnico(s)
+                    Se enviará la notificación a {getTargetCount()} usuario(s)
                   </AlertDescription>
                 </Alert>
 
@@ -490,7 +651,10 @@ export function SendNotificationModal({ open, onOpenChange }: SendNotificationMo
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
-                    Enviar + Push a {getTargetCount()} técnico(s)
+                    {pushConnectionWorking ? 
+                      `Enviar + Push a ${getTargetCount()} usuario(s) 🚀` : 
+                      `Enviar a ${getTargetCount()} usuario(s) (Fallback) 📱`
+                    }
                   </Button>
                 </div>
               </form>

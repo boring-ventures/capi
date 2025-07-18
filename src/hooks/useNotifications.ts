@@ -5,6 +5,7 @@ import {
   createNotification,
   createBulkNotifications,
   sendManualNotification,
+  sendManualNotificationToClient,
   sendBulkManualNotifications,
   markNotificationAsRead,
   markMultipleNotificationsAsRead,
@@ -145,14 +146,58 @@ export const useSendManualNotification = () => {
       serviceId?: string;
       data?: Record<string, any>;
     }) => sendManualNotification(technicianId, title, body, serviceId, data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "stats"] });
-      toast.success("Notificación enviada exitosamente (con push notification)");
+      
+      // Verificar si se usó fallback
+      const usedFallback = variables.data?.fallback;
+      if (usedFallback) {
+        toast.success("Notificación enviada (método directo) ✅");
+      } else {
+        toast.success("Notificación enviada exitosamente ✅");
+      }
     },
     onError: (error: Error) => {
       console.error("Error sending manual notification:", error);
       toast.error(`Error al enviar notificación: ${error.message}`);
+    },
+  });
+};
+
+// Hook para enviar notificación manual a cliente (dashboard)
+export const useSendManualNotificationToClient = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      clientId,
+      title,
+      body,
+      serviceId,
+      data,
+    }: {
+      clientId: string;
+      title: string;
+      body: string;
+      serviceId?: string;
+      data?: Record<string, any>;
+    }) => sendManualNotificationToClient(clientId, title, body, serviceId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications", "stats"] });
+      
+      // Verificar si se usó fallback
+      const usedFallback = variables.data?.fallback;
+      if (usedFallback) {
+        toast.success("Notificación al cliente enviada (método directo) ✅");
+      } else {
+        toast.success("Notificación al cliente enviada exitosamente ✅");
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Error sending manual notification to client:", error);
+      toast.error(`Error al enviar notificación al cliente: ${error.message}`);
     },
   });
 };
@@ -163,26 +208,30 @@ export const useSendBulkManualNotifications = () => {
 
   return useMutation({
     mutationFn: ({
-      technicianIds,
+      userIds,
       title,
       body,
       data,
     }: {
-      technicianIds: string[];
+      userIds: string[];
       title: string;
       body: string;
       data?: Record<string, any>;
-    }) => sendBulkManualNotifications(technicianIds, title, body, data),
+    }) => sendBulkManualNotifications(userIds, title, body, data),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "stats"] });
       
       const { success, errors } = result;
-      if (success.length > 0) {
-        toast.success(`${success.length} notificaciones enviadas exitosamente (con push notifications)`);
-      }
-      if (errors.length > 0) {
-        toast.error(`${errors.length} notificaciones fallaron. Ver consola para detalles.`);
+      
+      if (success.length > 0 && errors.length === 0) {
+        toast.success(`🎉 ${success.length} notificaciones enviadas exitosamente`);
+      } else if (success.length > 0 && errors.length > 0) {
+        toast.success(`✅ ${success.length} enviadas, ⚠️ ${errors.length} fallaron`);
+        console.warn("Errores en envío masivo:", errors);
+      } else if (errors.length > 0) {
+        toast.error(`❌ Todas las notificaciones fallaron (${errors.length})`);
+        console.error("Errores en envío masivo:", errors);
       }
     },
     onError: (error: Error) => {
@@ -192,12 +241,14 @@ export const useSendBulkManualNotifications = () => {
   });
 };
 
-// Hook para verificar conexión de push notifications
+// Hook mejorado para verificar conexión de push notifications
 export const useTestPushNotificationConnection = () => {
   return useQuery({
     queryKey: ["push-notification-test"],
     queryFn: testPushNotificationConnection,
     staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 }; 

@@ -119,9 +119,9 @@ export async function createNotification(notificationData: CreateNotificationDat
 
 // Crear notificaciones en masa usando la función PostgreSQL
 export async function createBulkNotifications(bulkData: BulkNotificationData): Promise<ServiceNotification[]> {
-  let targetTechnicians: string[] = [];
+  let targetUsers: string[] = [];
 
-  // Determinar los técnicos objetivo según el tipo
+  // Determinar los usuarios objetivo según el tipo
   switch (bulkData.target_type) {
     case "all_technicians":
       const { data: allTechnicians, error: allTechError } = await supabase
@@ -131,7 +131,7 @@ export async function createBulkNotifications(bulkData: BulkNotificationData): P
         .eq("status", "active");
       
       if (allTechError) throw new Error(allTechError.message);
-      targetTechnicians = allTechnicians.map(t => t.id);
+      targetUsers = allTechnicians.map(t => t.id);
       break;
 
     case "technicians_by_category":
@@ -143,30 +143,46 @@ export async function createBulkNotifications(bulkData: BulkNotificationData): P
         .contains("area_trabajo", bulkData.target_ids);
       
       if (catTechError) throw new Error(catTechError.message);
-      targetTechnicians = categoryTechnicians.map(t => t.user_id);
+      targetUsers = categoryTechnicians.map(t => t.user_id);
       break;
 
     case "specific_technicians":
       if (!bulkData.target_ids?.length) throw new Error("Se requieren IDs de técnicos");
-      targetTechnicians = bulkData.target_ids;
+      targetUsers = bulkData.target_ids;
+      break;
+
+    case "all_clients":
+      const { data: allClients, error: allClientError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("role", "client")
+        .eq("status", "active");
+      
+      if (allClientError) throw new Error(allClientError.message);
+      targetUsers = allClients.map(c => c.id);
+      break;
+
+    case "specific_clients":
+      if (!bulkData.target_ids?.length) throw new Error("Se requieren IDs de clientes");
+      targetUsers = bulkData.target_ids;
       break;
 
     default:
       throw new Error("Tipo de notificación no soportado");
   }
 
-  if (targetTechnicians.length === 0) {
-    throw new Error("No se encontraron técnicos para enviar la notificación");
+  if (targetUsers.length === 0) {
+    throw new Error("No se encontraron usuarios para enviar la notificación");
   }
 
-  // Enviar notificaciones usando la función send_notification para cada técnico
+  // Enviar notificaciones usando la función send_notification para cada usuario
   const results: ServiceNotification[] = [];
   
-  for (const technicianId of targetTechnicians) {
+  for (const userId of targetUsers) {
     try {
       // Usar la función send_notification que automáticamente envía push notifications
       const { error } = await supabase.rpc('send_notification', {
-        p_user_id: technicianId,
+        p_user_id: userId,
         p_service_id: null, // Para notificaciones masivas generalmente no hay servicio específico
         p_status: 'unread',
         p_title: bulkData.title,
@@ -175,15 +191,15 @@ export async function createBulkNotifications(bulkData: BulkNotificationData): P
       });
 
       if (error) {
-        console.error(`Error enviando notificación a técnico ${technicianId}:`, error);
-        continue; // Continuar con el siguiente técnico
+        console.error(`Error enviando notificación a usuario ${userId}:`, error);
+        continue; // Continuar con el siguiente usuario
       }
 
       // Obtener la notificación creada
       const { data: notification, error: fetchError } = await supabase
         .from("service_notifications")
         .select()
-        .eq("technician_id", technicianId)
+        .eq("technician_id", userId)
         .eq("title", bulkData.title)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -193,7 +209,7 @@ export async function createBulkNotifications(bulkData: BulkNotificationData): P
         results.push(notification);
       }
     } catch (error) {
-      console.error(`Error procesando técnico ${technicianId}:`, error);
+      console.error(`Error procesando usuario ${userId}:`, error);
     }
   }
 
@@ -293,7 +309,112 @@ export async function savePushToken(userId: string, token: string): Promise<void
   if (error) throw new Error(error.message);
 }
 
-// Función para enviar notificación manual desde el dashboard (con push notification automática)
+// Nueva función para enviar push notifications directamente a la edge function
+export async function sendPushNotificationsDirect(
+  userIds: string[],
+  title: string,
+  body: string,
+  data?: Record<string, any>
+): Promise<{ success: number; errors: string[] }> {
+  try {
+    // Obtener todos los tokens push de los usuarios
+    const { data: pushTokensData, error: tokensError } = await supabase
+      .from("push_tokens")
+      .select("token")
+      .in("user_id", userIds);
+
+    if (tokensError) {
+      throw new Error(`Error obteniendo tokens: ${tokensError.message}`);
+    }
+
+    const tokens = pushTokensData?.map(t => t.token).filter(Boolean) || [];
+    
+    if (tokens.length === 0) {
+      console.warn("No se encontraron tokens push para los usuarios especificados");
+      return { success: 0, errors: ["No hay tokens push disponibles"] };
+    }
+
+    // Llamar directamente a la edge function
+    const response = await fetch('https://lizgjhypnuaaduaftafp.supabase.co/functions/v1/send-push-notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpemdqaHlwbnVhYWR1YWZ0YWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAyMzU3NTcsImV4cCI6MjA0NTgxMTc1N30.fo1rbcV4XPpcWBB3GzCnxsBEmp-eQikt-sk3Zn7g6PI'
+      },
+      body: JSON.stringify({
+        tokens,
+        message: {
+          title,
+          body,
+          data: data || {}
+        }
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(`Error de edge function: ${result.error || 'Error desconocido'}`);
+    }
+
+    console.log('Push notifications enviadas exitosamente:', result);
+    return { 
+      success: result.tickets?.length || tokens.length, 
+      errors: result.errors || [] 
+    };
+
+  } catch (error) {
+    console.error('Error enviando push notifications directamente:', error);
+    return { 
+      success: 0, 
+      errors: [error instanceof Error ? error.message : 'Error desconocido'] 
+    };
+  }
+}
+
+// Función mejorada para crear notificación en DB y enviar push notification
+export async function createNotificationWithPush(
+  userId: string,
+  title: string,
+  body: string,
+  serviceId?: string,
+  data?: Record<string, any>
+): Promise<ServiceNotification> {
+  try {
+    // 1. Crear la notificación en la base de datos
+    const { data: notification, error: dbError } = await supabase
+      .from("service_notifications")
+      .insert({
+        service_id: serviceId || null,
+        technician_id: userId,
+        title,
+        body,
+        data: data || {},
+        status: 'unread'
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      throw new Error(`Error creando notificación en DB: ${dbError.message}`);
+    }
+
+    // 2. Enviar push notification directamente
+    const pushResult = await sendPushNotificationsDirect([userId], title, body, data);
+    
+    if (pushResult.success === 0 && pushResult.errors.length > 0) {
+      console.warn('Push notification falló, pero notificación en DB creada:', pushResult.errors);
+    }
+
+    return notification;
+
+  } catch (error) {
+    console.error('Error en createNotificationWithPush:', error);
+    throw error;
+  }
+}
+
+// Función mejorada para enviar notificación manual desde el dashboard
 export async function sendManualNotification(
   technicianId: string,
   title: string,
@@ -301,35 +422,103 @@ export async function sendManualNotification(
   serviceId?: string,
   data?: Record<string, any>
 ): Promise<ServiceNotification> {
-  // Usar la función send_notification que automáticamente maneja push notifications
-  const { error } = await supabase.rpc('send_notification', {
-    p_user_id: technicianId,
-    p_service_id: serviceId || null,
-    p_status: 'unread',
-    p_title: title,
-    p_body: body,
-    p_data: data || { type: 'manual', source: 'dashboard' }
-  });
+  try {
+    // Intentar primero con la función PostgreSQL existente
+    const { error: rpcError } = await supabase.rpc('send_notification', {
+      p_user_id: technicianId,
+      p_service_id: serviceId || null,
+      p_status: 'unread',
+      p_title: title,
+      p_body: body,
+      p_data: data || { type: 'manual', source: 'dashboard' }
+    });
 
-  if (error) throw new Error(error.message);
+    if (!rpcError) {
+      // Si la función PostgreSQL funciona, obtener la notificación creada
+      const { data: notification, error: fetchError } = await supabase
+        .from("service_notifications")
+        .select()
+        .eq("technician_id", technicianId)
+        .eq("title", title)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
-  // Obtener la notificación creada
-  const { data: notification, error: fetchError } = await supabase
-    .from("service_notifications")
-    .select()
-    .eq("technician_id", technicianId)
-    .eq("title", title)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+      if (!fetchError) {
+        return notification;
+      }
+    }
 
-  if (fetchError) throw new Error(fetchError.message);
-  return notification;
+    // Si la función PostgreSQL falla, usar el método directo
+    console.warn('Función PostgreSQL falló, usando método directo:', rpcError?.message);
+    return await createNotificationWithPush(
+      technicianId,
+      title,
+      body,
+      serviceId,
+      { ...data, type: 'manual', source: 'dashboard', fallback: true }
+    );
+
+  } catch (error) {
+    console.error('Error en sendManualNotification:', error);
+    throw error;
+  }
 }
 
-// Función para envío masivo manual desde el dashboard
+// Función mejorada para enviar notificación manual a cliente
+export async function sendManualNotificationToClient(
+  clientId: string,
+  title: string,
+  body: string,
+  serviceId?: string,
+  data?: Record<string, any>
+): Promise<ServiceNotification> {
+  try {
+    // Intentar primero con la función PostgreSQL existente
+    const { error: rpcError } = await supabase.rpc('send_notification', {
+      p_user_id: clientId,
+      p_service_id: serviceId || null,
+      p_status: 'unread',
+      p_title: title,
+      p_body: body,
+      p_data: data || { type: 'manual', source: 'dashboard' }
+    });
+
+    if (!rpcError) {
+      // Si la función PostgreSQL funciona, obtener la notificación creada
+      const { data: notification, error: fetchError } = await supabase
+        .from("service_notifications")
+        .select()
+        .eq("technician_id", clientId)
+        .eq("title", title)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!fetchError) {
+        return notification;
+      }
+    }
+
+    // Si la función PostgreSQL falla, usar el método directo
+    console.warn('Función PostgreSQL falló para cliente, usando método directo:', rpcError?.message);
+    return await createNotificationWithPush(
+      clientId,
+      title,
+      body,
+      serviceId,
+      { ...data, type: 'manual', source: 'dashboard', fallback: true }
+    );
+
+  } catch (error) {
+    console.error('Error en sendManualNotificationToClient:', error);
+    throw error;
+  }
+}
+
+// Función mejorada para envío masivo manual desde el dashboard
 export async function sendBulkManualNotifications(
-  technicianIds: string[],
+  userIds: string[],
   title: string,
   body: string,
   data?: Record<string, any>
@@ -337,47 +526,98 @@ export async function sendBulkManualNotifications(
   const results: ServiceNotification[] = [];
   const errors: string[] = [];
 
-  for (const technicianId of technicianIds) {
-    try {
-      const notification = await sendManualNotification(
-        technicianId,
-        title,
-        body,
-        undefined,
-        { ...data, type: 'bulk_manual', source: 'dashboard' }
-      );
-      results.push(notification);
-    } catch (error) {
-      const errorMessage = `Error enviando a técnico ${technicianId}: ${error instanceof Error ? error.message : 'Error desconocido'}`;
-      errors.push(errorMessage);
-      console.error(errorMessage);
+  // Intentar envío masivo optimizado primero
+  try {
+    // 1. Crear todas las notificaciones en la DB de una vez
+    const notificationsToInsert = userIds.map(userId => ({
+      service_id: null,
+      technician_id: userId,
+      title,
+      body,
+      data: { ...data, type: 'bulk_manual', source: 'dashboard' },
+      status: 'unread' as const
+    }));
+
+    const { data: notifications, error: bulkInsertError } = await supabase
+      .from("service_notifications")
+      .insert(notificationsToInsert)
+      .select();
+
+    if (bulkInsertError) {
+      throw new Error(`Error en inserción masiva: ${bulkInsertError.message}`);
+    }
+
+    if (notifications) {
+      results.push(...notifications);
+    }
+
+    // 2. Enviar push notifications masivas
+    const pushResult = await sendPushNotificationsDirect(userIds, title, body, data);
+    
+    if (pushResult.errors.length > 0) {
+      errors.push(...pushResult.errors.map(err => `Push notification: ${err}`));
+    }
+
+    console.log(`Envío masivo completado: ${results.length} notificaciones DB, ${pushResult.success} push notifications`);
+
+  } catch (error) {
+    console.error('Error en envío masivo optimizado, usando método individual:', error);
+    
+    // Fallback: envío individual
+    for (const userId of userIds) {
+      try {
+        const notification = await sendManualNotification(
+          userId,
+          title,
+          body,
+          undefined,
+          { ...data, type: 'bulk_manual', source: 'dashboard', individual_fallback: true }
+        );
+        results.push(notification);
+      } catch (individualError) {
+        const errorMessage = `Error enviando a usuario ${userId}: ${individualError instanceof Error ? individualError.message : 'Error desconocido'}`;
+        errors.push(errorMessage);
+        console.error(errorMessage);
+      }
     }
   }
 
   return { success: results, errors };
 }
 
-// Función para verificar el estado de las notificaciones push
+// Función mejorada para verificar el estado de las notificaciones push
 export async function testPushNotificationConnection(): Promise<boolean> {
   try {
-    // Hacer una llamada de prueba a la edge function
     const response = await fetch('https://lizgjhypnuaaduaftafp.supabase.co/functions/v1/send-push-notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpemdqaHlwbnVhYWR1YWZ0YWZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAyMzU3NTcsImV4cCI6MjA0NTgxMTc1N30.fo1rbcV4XPpcWBB3GzCnxsBEmp-eQikt-sk3Zn7g6PI'
       },
       body: JSON.stringify({
-        tokens: ['test-token'], // Token de prueba
+        tokens: ['ExponentPushToken[test-token-invalid]'], // Token de prueba válido en formato
         message: {
-          title: 'Test',
-          body: 'Test connection',
-          data: { test: true }
+          title: 'Test Connection',
+          body: 'Verificando conexión con edge function',
+          data: { test: true, timestamp: new Date().toISOString() }
         }
       })
     });
 
-    // Si no es un error 400 (que esperamos por el token inválido), la conexión funciona
-    return response.status !== 500;
+    const result = await response.json();
+    
+    // La edge function está funcionando si no devuelve error 500
+    // Error 400 es esperado por token inválido, pero significa que la función responde
+    const isWorking = response.status !== 500;
+    
+    console.log('Test push notification result:', {
+      status: response.status,
+      isWorking,
+      result
+    });
+    
+    return isWorking;
+    
   } catch (error) {
     console.error('Error testing push notification connection:', error);
     return false;
